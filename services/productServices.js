@@ -49,13 +49,13 @@ exports.queryProducts = async ({
     }
 
     // Thực hiện truy vấn
-    const products = await Product.find(query)
+    const queryResult = await Product.find(query)
       .limit(limit)
       .sort({ _id: productOrder });
 
-    return products;
+    return queryResult;
   } catch (err) {
-    throw new Error(err.message);
+    console.error("Error occurred:", err.message);
   }
 };
 
@@ -87,6 +87,6 @@ exports.getProductsWithPagination = async ({ page = 1, limit = 10 }) => {
       totalPages,
     };
   } catch (err) {
-    throw new Error(err.message);
+    console.error("Error occurred:", err.message);
   }
 };

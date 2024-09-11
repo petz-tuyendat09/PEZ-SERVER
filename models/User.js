@@ -61,6 +61,12 @@ const userSchema = new Schema({
       orderTotal: Number,
     },
   ],
+  userPoint: { type: Number, required: true },
+  userImage: {
+    type: String,
+    required: false,
+    default: "default-user-image.png",
+  },
 });
 
 module.exports = mongoose.model("User", userSchema);

@@ -22,6 +22,8 @@ require("./config/passport-google");
 // === Router Config ===
 const productRouter = require("./routes/product.routes");
 const authRouter = require("./routes/auth.routes");
+const categoriesRouter = require("./routes/categories.routes");
+const subCategories = require("./routes/subcategories.routes");
 
 require("dotenv").config({ path: ".env" });
 
@@ -69,5 +71,7 @@ app.use(jsonParser);
 
 app.use("/api/product", productRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/categories", categoriesRouter);
+app.use("/api/subcategories", subCategories);
 
 module.exports = app;
