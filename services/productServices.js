@@ -4,19 +4,21 @@ const Product = require("../models/Product");
  * Tìm kiếm sản phẩm dựa trên các tiêu chí khác nhau
  * @param {object} filters - Các tiêu chí tìm kiếm sản phẩm
  * @param {string} filters.categoryName - Tên danh mục sản phẩm
- * @param {string} filters.productSubcategories - Tên các danh mục con của sản phẩm
+ * @param {string} filters.productSubcategory - Tên các danh mục con của sản phẩm
  * @param {string} filters.productName - Tên sản phẩm
  * @param {number} filters.salePercent - Phần trăm giảm giá
  * @param {string} filters.productStatus - Trạng thái sản phẩm ("default" hoặc "lastest")
+ * @param {string} filters.productFor - Sản phẩm dành cho chó hoặc mèo ("chó" hoăc "mèo")
  * @param {number} filters.limit - Số lượng sản phẩm tối đa trả về
  * @returns {Promise<Array>} Trả về danh sách các sản phẩm phù hợp với tiêu chí tìm kiếm
  */
 exports.queryProducts = async ({
   categoryName,
-  productSubcategories,
+  productSubcategory,
   productName,
   salePercent,
   productStatus = "default",
+  productFor,
   limit,
 } = {}) => {
   try {
@@ -38,15 +40,24 @@ exports.queryProducts = async ({
       query.salePercent = { $gte: salePercent };
     }
 
+    if (productFor) {
+      query.productFor = new RegExp(productFor, "i");
+    }
+
     // Tìm kiếm theo tên danh mục sản phẩm (nếu có)
     if (categoryName) {
-      query["productCategory.categoryName"] = categoryName;
+      query["productCategory.categoryName"] = new RegExp(categoryName, "i");
     }
 
     // Tìm kiếm theo danh mục con (nếu có)
-    if (productSubcategories) {
-      query.productSubcategories = productSubcategories;
+    if (productSubcategory) {
+      query["productSubCategory.subCategoryName"] = new RegExp(
+        productSubcategory,
+        "i"
+      );
     }
+
+    console.log(productFor);
 
     // Thực hiện truy vấn
     const queryResult = await Product.find(query)
@@ -90,3 +101,9 @@ exports.getProductsWithPagination = async ({ page = 1, limit = 10 }) => {
     console.error("Error occurred:", err.message);
   }
 };
+
+/**
+ * Thêm sản phẩm
+ */
+
+// exports.checkDuplicatedProduct = async (productName) => {};

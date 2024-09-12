@@ -35,29 +35,25 @@ const productSchema = new Schema({
     type: Number,
     required: true,
   },
-  productCategory: {
-    categoryId: {
-      type: ObjectId,
-      ref: "Categories",
-      required: true,
-    },
-    categoryName: {
-      type: String,
-      required: true,
-    },
-  },
-  productSubcategories: {
-    type: String,
+  categoryId: {
+    type: ObjectId,
+    ref: "Categories",
     required: true,
-    enum: ["Cat", "Dog"],
   },
-  productDescription: {
+
+  productSubCategory: {
+    type: ObjectId,
+    required: true,
+    ref: "Subcategories",
+  },
+  animalType: {
     type: String,
     required: false,
-    default: "Updating...",
+    enum: ["Chó", "Mèo"],
   },
 });
 
+productSchema.index({ productName: 1 });
 module.exports = mongoose.model("Products", productSchema, "products");
 
 // sau cai productSchema la collection muon su dung, neu k co thi mongoDB su dung products la default,

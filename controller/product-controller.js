@@ -28,10 +28,11 @@ exports.queryProducts = async (req, res) => {
   try {
     const filters = {
       categoryName: req.query.categoryName,
-      productSubcategories: req.query.productSubcategories,
+      productSubcategory: req.query.productSubcategory,
       productName: req.query.productName,
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
+      productFor: req.query.productFor,
       limit: parseInt(req.query.limit, 10) || 20,
     };
 
@@ -42,7 +43,7 @@ exports.queryProducts = async (req, res) => {
   }
 };
 
-exports.insertProduct = async (body, productImage) => {
+exports.insertProduct = async (req, res) => {
   try {
     const {
       productName,
@@ -52,65 +53,67 @@ exports.insertProduct = async (body, productImage) => {
       productCategory,
       productSkintype,
       description,
-    } = body;
+    } = req.body;
 
-    // Check duplicated product
-    const duplicatedProduct = await Product.findOne({
-      productName: productName,
-    });
+    console.log(req.body);
 
-    if (duplicatedProduct) {
-      // Delete image if duplicated
-      const filePath = path.join(
-        __dirname,
-        "../public/images/products",
-        productImage
-      );
-      fs.unlink(filePath, (err) => {
-        if (err) console.error("Failed to delete file:", err);
-      });
-      return { status: 401, message: "Duplicated product name" };
-    }
+    // // Check duplicated product
+    // const duplicatedProduct = await Product.findOne({
+    //   productName: productName,
+    // });
 
-    // If not found, proceed to create a new product
-    const categoryFind = await Categories.findOne({ _id: productCategory });
-    const skintypeFind = await Skintype.findOne({ _id: productSkintype });
+    // if (duplicatedProduct) {
+    //   // Delete image if duplicated
+    //   const filePath = path.join(
+    //     __dirname,
+    //     "../public/images/products",
+    //     productImage
+    //   );
+    //   fs.unlink(filePath, (err) => {
+    //     if (err) console.error("Failed to delete file:", err);
+    //   });
+    //   return { status: 401, message: "Duplicated product name" };
+    // }
 
-    if (!categoryFind) {
-      throw new Error("Category name don't exist");
-    }
+    // // If not found, proceed to create a new product
+    // const categoryFind = await Categories.findOne({ _id: productCategory });
+    // const skintypeFind = await Skintype.findOne({ _id: productSkintype });
 
-    if (!skintypeFind) {
-      throw new Error("Skintype don't exist");
-    }
+    // if (!categoryFind) {
+    //   throw new Error("Category name don't exist");
+    // }
 
-    // Create a new product schema instance
-    const newProduct = new Product({
-      productName: productName,
-      productPrice: productPrice,
-      salePercent: salePercent,
-      productSlug: "123",
-      productQuantity: productQuantity,
-      productImage: productImage,
-      productDescription: description,
-      productCategory: {
-        categoryId: categoryFind._id,
-        categoryName: categoryFind.categoryName,
-      },
-      skinType: {
-        skinTypeId: skintypeFind._id,
-        skinTypeName: skintypeFind.skinType,
-      },
-    });
+    // if (!skintypeFind) {
+    //   throw new Error("Skintype don't exist");
+    // }
 
-    const result = await newProduct.save();
+    // // Create a new product schema instance
+    // const newProduct = new Product({
+    //   productName: productName,
+    //   productPrice: productPrice,
+    //   salePercent: salePercent,
+    //   productSlug: "123",
+    //   productQuantity: productQuantity,
+    //   productImage: productImage,
+    //   productDescription: description,
+    //   productCategory: {
+    //     categoryId: categoryFind._id,
+    //     categoryName: categoryFind.categoryName,
+    //   },
+    //   skinType: {
+    //     skinTypeId: skintypeFind._id,
+    //     skinTypeName: skintypeFind.skinType,
+    //   },
+    // });
 
-    // Add to categories database
-    categoryFind.products.push({ productId: result._id });
-    await categoryFind.save();
+    // const result = await newProduct.save();
 
-    skintypeFind.products.push({ productId: result._id });
-    await skintypeFind.save(); // Đã sửa lỗi từ categoryFind.save() thành skintypeFind.save()
+    // // Add to categories database
+    // categoryFind.products.push({ productId: result._id });
+    // await categoryFind.save();
+
+    // skintypeFind.products.push({ productId: result._id });
+    // await skintypeFind.save(); // Đã sửa lỗi từ categoryFind.save() thành skintypeFind.save()
 
     return { status: 201, message: "Product has been inserted to database" };
   } catch (error) {
@@ -244,4 +247,30 @@ exports.updateProduct = async (id, body, imageName) => {
   } catch (error) {
     throw new Error(error.message);
   }
+};
+
+exports.uploadImageCKEditor = async (req, res) => {
+  console.log(req.files);
+  return res.status(200).json({
+    uploaded: true,
+  });
+};
+
+exports.deleteImageCKEditor = async (req, res) => {
+  console.log("body data:", req.body);
+  // const filePath = path.join(
+  //   __dirname,
+  //   "../public/images/products",
+  //   deleteProduct.productImage
+  // );
+
+  // fs.unlink(filePath, (err) => {
+  //   if (err) console.error("Failed to delete file:", err);
+  // });
+
+  console.log(`Image has been deleted`);
+
+  return res.status(200).json({
+    uploaded: true,
+  });
 };
