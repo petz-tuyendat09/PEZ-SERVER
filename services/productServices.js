@@ -1,4 +1,7 @@
 const Product = require("../models/Product");
+const fs = require("fs");
+const path = require("path");
+var slugify = require("slugify");
 
 /**
  * Tìm kiếm sản phẩm dựa trên các tiêu chí khác nhau
@@ -103,7 +106,50 @@ exports.getProductsWithPagination = async ({ page = 1, limit = 10 }) => {
 };
 
 /**
- * Thêm sản phẩm
+ * Check sản phẩm trùng
+ * @param {string} productName - Tên sản phẩm vừa thêm
  */
 
-// exports.checkDuplicatedProduct = async (productName) => {};
+exports.checkDuplicatedProduct = async (productName, files) => {
+  try {
+    // Tìm sản phẩm với tên trùng lặp
+    const duplicatedProduct = await Product.findOne({
+      productName: productName,
+    });
+
+    // Ghi log tên các tệp tin
+    files.forEach((item) => {
+      console.log(item.originalname);
+    });
+
+    if (duplicatedProduct) {
+      // Lấy danh sách tên tệp từ `files`
+      if (files) {
+        const filesToDelete = files.map((item) => item.originalname);
+
+        // Xóa tất cả các tệp tin nếu sản phẩm bị trùng
+        await Promise.all(
+          filesToDelete.map((file) => {
+            const filePath = path.join(
+              __dirname,
+              "../public/images/products",
+              file
+            );
+            return fs.promises.unlink(filePath).catch((err) => {
+              console.error(`Failed to delete file ${file}:`, err);
+            });
+          })
+        );
+
+        console.log("All files deleted successfully.");
+      }
+
+      return !!duplicatedProduct;
+    }
+
+    return false; // Trả về false nếu không có sản phẩm trùng lặp
+  } catch (error) {
+    console.error("Error checking duplicated product:", error);
+    throw error; // Ném lỗi để xử lý ở nơi gọi hàm
+  }
+};

@@ -26,11 +26,17 @@ const productSchema = new Schema({
     type: String,
     required: true,
   },
-  productImage: {
+  productThumbnail: {
     type: String,
     required: false,
     default: "no-img.png",
   },
+  productImage: [
+    {
+      type: String,
+      required: false,
+    },
+  ],
   productQuantity: {
     type: Number,
     required: true,

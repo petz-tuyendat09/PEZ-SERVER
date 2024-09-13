@@ -3,6 +3,7 @@ const Categories = require("../models/Categories");
 const productService = require("../services/productServices");
 const fs = require("fs");
 const path = require("path");
+var slugify = require("slugify");
 
 exports.getProductsWithPagination = async (req, res) => {
   try {
@@ -51,11 +52,34 @@ exports.insertProduct = async (req, res) => {
       salePercent,
       productQuantity,
       productCategory,
-      productSkintype,
-      description,
+      productSubcategory,
+      animalType,
+      productDescription,
     } = req.body;
 
-    console.log(req.body);
+    const productSlug = slugify(productName, { lower: true });
+
+    console.table([
+      {
+        "Product Name": productName,
+        "Product Slug": productSlug,
+        "Product Price": productPrice,
+        "Sale Percent": salePercent,
+        "Product Quantity": productQuantity,
+        "Product Category": productCategory,
+        "Product Subcategory": productSubcategory,
+        "Animal Type": animalType,
+        "Product Description": productDescription,
+      },
+    ]);
+
+    const isProductExists = await productService.checkDuplicatedProduct(
+      productName,
+      req.files
+    );
+    if (isProductExists) {
+      return res.status(409).json({ message: "Product duplicated" });
+    }
 
     // // Check duplicated product
     // const duplicatedProduct = await Product.findOne({
@@ -118,15 +142,16 @@ exports.insertProduct = async (req, res) => {
     return { status: 201, message: "Product has been inserted to database" };
   } catch (error) {
     // Xóa tệp nếu có lỗi trong quá trình xử lý
-    const filePath = path.join(
-      __dirname,
-      "../public/images/products",
-      productImage
-    );
-    fs.unlink(filePath, (err) => {
-      if (err) console.error("Failed to delete file:", err);
-    });
-    throw new Error({ error, message: "There is something wrong..." });
+    console.log(error);
+    // const filePath = path.join(
+    //   __dirname,
+    //   "../public/images/products",
+    //   productImage
+    // );
+    // fs.unlink(filePath, (err) => {
+    //   if (err) console.error("Failed to delete file:", err);
+    // });
+    // throw new Error({ error, message: "There is something wrong..." });
   }
 };
 
