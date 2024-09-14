@@ -7,14 +7,14 @@ const subCategoriesSchema = Schema({
     type: String,
     required: true,
   },
-  category: {
-    categoryId: {
-      type: ObjectId,
-      required: true,
-    },
-    categoryName: {
+  categoryId: {
+    type: ObjectId,
+    required: true,
+
+    animalType: {
       type: String,
       required: true,
+      enum: ["Chó", "Mèo"],
     },
   },
 });

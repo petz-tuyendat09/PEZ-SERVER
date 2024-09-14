@@ -3,6 +3,7 @@ const Categories = require("../models/Categories");
 const productService = require("../services/productServices");
 const fs = require("fs");
 const path = require("path");
+var slugify = require("slugify");
 
 exports.getProductsWithPagination = async (req, res) => {
   try {
@@ -28,10 +29,11 @@ exports.queryProducts = async (req, res) => {
   try {
     const filters = {
       categoryName: req.query.categoryName,
-      productSubcategories: req.query.productSubcategories,
+      productSubcategory: req.query.productSubcategory,
       productName: req.query.productName,
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
+      productFor: req.query.productFor,
       limit: parseInt(req.query.limit, 10) || 20,
     };
 
@@ -52,88 +54,74 @@ exports.getTrendingProducts = async (req, res) => {
 }
 
 
-exports.insertProduct = async (body, productImage) => {
+exports.insertProduct = async (req, res) => {
   try {
-    const {
-      productName,
-      productPrice,
-      salePercent,
-      productQuantity,
-      productCategory,
-      productSkintype,
-      description,
-    } = body;
+    const newProductInfo = {
+      productName: req.body.productName,
+      productPrice: req.body.productPrice,
+      salePercent: req.body.salePercent,
+      productQuantity: req.body.productQuantity,
+      productCategory: req.body.productCategory,
+      productSubcategory: req.body.productSubcategory,
+      animalType: req.body.animalType,
+      productDescription: req.body.productDescription,
+      productImages: req.files,
+    };
 
-    // Check duplicated product
-    const duplicatedProduct = await Product.findOne({
-      productName: productName,
-    });
+    const isProductExists = await productService.checkDuplicatedProduct(
+      newProductInfo.productName,
+      req.files
+    );
 
-    if (duplicatedProduct) {
-      // Delete image if duplicated
-      const filePath = path.join(
-        __dirname,
-        "../public/images/products",
-        productImage
-      );
-      fs.unlink(filePath, (err) => {
-        if (err) console.error("Failed to delete file:", err);
-      });
-      return { status: 401, message: "Duplicated product name" };
+    if (isProductExists) {
+      return res.status(409).json({ message: "Product duplicated" });
     }
 
-    // If not found, proceed to create a new product
-    const categoryFind = await Categories.findOne({ _id: productCategory });
-    const skintypeFind = await Skintype.findOne({ _id: productSkintype });
+    const newProduct = await productService.insertProduct(newProductInfo);
 
-    if (!categoryFind) {
-      throw new Error("Category name don't exist");
-    }
+    // // If not found, proceed to create a new product
 
-    if (!skintypeFind) {
-      throw new Error("Skintype don't exist");
-    }
+    // // Create a new product schema instance
+    // const newProduct = new Product({
+    //   productName: productName,
+    //   productPrice: productPrice,
+    //   salePercent: salePercent,
+    //   productSlug: "123",
+    //   productQuantity: productQuantity,
+    //   productImage: productImage,
+    //   productDescription: description,
+    //   productCategory: {
+    //     categoryId: categoryFind._id,
+    //     categoryName: categoryFind.categoryName,
+    //   },
+    //   skinType: {
+    //     skinTypeId: skintypeFind._id,
+    //     skinTypeName: skintypeFind.skinType,
+    //   },
+    // });
 
-    // Create a new product schema instance
-    const newProduct = new Product({
-      productName: productName,
-      productPrice: productPrice,
-      salePercent: salePercent,
-      productSlug: "123",
-      productQuantity: productQuantity,
-      productImage: productImage,
-      productDescription: description,
-      productCategory: {
-        categoryId: categoryFind._id,
-        categoryName: categoryFind.categoryName,
-      },
-      skinType: {
-        skinTypeId: skintypeFind._id,
-        skinTypeName: skintypeFind.skinType,
-      },
-    });
+    // const result = await newProduct.save();
 
-    const result = await newProduct.save();
+    // // Add to categories database
+    // categoryFind.products.push({ productId: result._id });
+    // await categoryFind.save();
 
-    // Add to categories database
-    categoryFind.products.push({ productId: result._id });
-    await categoryFind.save();
-
-    skintypeFind.products.push({ productId: result._id });
-    await skintypeFind.save(); // Đã sửa lỗi từ categoryFind.save() thành skintypeFind.save()
+    // skintypeFind.products.push({ productId: result._id });
+    // await skintypeFind.save(); // Đã sửa lỗi từ categoryFind.save() thành skintypeFind.save()
 
     return { status: 201, message: "Product has been inserted to database" };
   } catch (error) {
     // Xóa tệp nếu có lỗi trong quá trình xử lý
-    const filePath = path.join(
-      __dirname,
-      "../public/images/products",
-      productImage
-    );
-    fs.unlink(filePath, (err) => {
-      if (err) console.error("Failed to delete file:", err);
-    });
-    throw new Error({ error, message: "There is something wrong..." });
+    console.log(error);
+    // const filePath = path.join(
+    //   __dirname,
+    //   "../public/images/products",
+    //   productImage
+    // );
+    // fs.unlink(filePath, (err) => {
+    //   if (err) console.error("Failed to delete file:", err);
+    // });
+    // throw new Error({ error, message: "There is something wrong..." });
   }
 };
 
@@ -254,4 +242,30 @@ exports.updateProduct = async (id, body, imageName) => {
   } catch (error) {
     throw new Error(error.message);
   }
+};
+
+exports.uploadImageCKEditor = async (req, res) => {
+  console.log(req.files);
+  return res.status(200).json({
+    uploaded: true,
+  });
+};
+
+exports.deleteImageCKEditor = async (req, res) => {
+  console.log("body data:", req.body);
+  // const filePath = path.join(
+  //   __dirname,
+  //   "../public/images/products",
+  //   deleteProduct.productImage
+  // );
+
+  // fs.unlink(filePath, (err) => {
+  //   if (err) console.error("Failed to delete file:", err);
+  // });
+
+  console.log(`Image has been deleted`);
+
+  return res.status(200).json({
+    uploaded: true,
+  });
 };
