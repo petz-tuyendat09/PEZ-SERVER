@@ -46,70 +46,30 @@ exports.queryProducts = async (req, res) => {
 
 exports.insertProduct = async (req, res) => {
   try {
-    const {
-      productName,
-      productPrice,
-      salePercent,
-      productQuantity,
-      productCategory,
-      productSubcategory,
-      animalType,
-      productDescription,
-    } = req.body;
-
-    const productSlug = slugify(productName, { lower: true });
-
-    console.table([
-      {
-        "Product Name": productName,
-        "Product Slug": productSlug,
-        "Product Price": productPrice,
-        "Sale Percent": salePercent,
-        "Product Quantity": productQuantity,
-        "Product Category": productCategory,
-        "Product Subcategory": productSubcategory,
-        "Animal Type": animalType,
-        "Product Description": productDescription,
-      },
-    ]);
+    const newProductInfo = {
+      productName: req.body.productName,
+      productPrice: req.body.productPrice,
+      salePercent: req.body.salePercent,
+      productQuantity: req.body.productQuantity,
+      productCategory: req.body.productCategory,
+      productSubcategory: req.body.productSubcategory,
+      animalType: req.body.animalType,
+      productDescription: req.body.productDescription,
+      productImages: req.files,
+    };
 
     const isProductExists = await productService.checkDuplicatedProduct(
-      productName,
+      newProductInfo.productName,
       req.files
     );
+
     if (isProductExists) {
       return res.status(409).json({ message: "Product duplicated" });
     }
 
-    // // Check duplicated product
-    // const duplicatedProduct = await Product.findOne({
-    //   productName: productName,
-    // });
-
-    // if (duplicatedProduct) {
-    //   // Delete image if duplicated
-    //   const filePath = path.join(
-    //     __dirname,
-    //     "../public/images/products",
-    //     productImage
-    //   );
-    //   fs.unlink(filePath, (err) => {
-    //     if (err) console.error("Failed to delete file:", err);
-    //   });
-    //   return { status: 401, message: "Duplicated product name" };
-    // }
+    const newProduct = await productService.insertProduct(newProductInfo);
 
     // // If not found, proceed to create a new product
-    // const categoryFind = await Categories.findOne({ _id: productCategory });
-    // const skintypeFind = await Skintype.findOne({ _id: productSkintype });
-
-    // if (!categoryFind) {
-    //   throw new Error("Category name don't exist");
-    // }
-
-    // if (!skintypeFind) {
-    //   throw new Error("Skintype don't exist");
-    // }
 
     // // Create a new product schema instance
     // const newProduct = new Product({

@@ -5,5 +5,12 @@ const productController = require("../controller/product-controller");
 
 router.get("/", productController.queryProducts);
 router.get("/page", productController.getProductsWithPagination);
-router.post("/insert-product", upload.any(), productController.insertProduct);
+router.post(
+  "/insert-product",
+  upload.fields([
+    { name: "productThumbnail", maxCount: 1 },
+    { name: "productImages", maxCount: 3 },
+  ]),
+  productController.insertProduct
+);
 module.exports = router;
