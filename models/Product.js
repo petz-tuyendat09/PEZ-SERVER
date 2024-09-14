@@ -12,6 +12,10 @@ const productSchema = new Schema({
     type: Number,
     required: true,
   },
+  createdAt: {
+    type: String,
+    required: true
+  },
   salePercent: {
     type: Number,
     required: false,
