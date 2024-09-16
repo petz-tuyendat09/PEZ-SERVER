@@ -3,7 +3,6 @@ const Categories = require("../models/Categories");
 const productService = require("../services/productServices");
 const fs = require("fs");
 const path = require("path");
-var slugify = require("slugify");
 
 exports.getProductsWithPagination = async (req, res) => {
   try {
@@ -55,7 +54,7 @@ exports.insertProduct = async (req, res) => {
       productSubcategory: req.body.productSubcategory,
       animalType: req.body.animalType,
       productDescription: req.body.productDescription,
-      productImages: req.files,
+      files: req.files,
     };
 
     const isProductExists = await productService.checkDuplicatedProduct(
@@ -67,51 +66,13 @@ exports.insertProduct = async (req, res) => {
       return res.status(409).json({ message: "Product duplicated" });
     }
 
-    const newProduct = await productService.insertProduct(newProductInfo);
-
-    // // If not found, proceed to create a new product
-
-    // // Create a new product schema instance
-    // const newProduct = new Product({
-    //   productName: productName,
-    //   productPrice: productPrice,
-    //   salePercent: salePercent,
-    //   productSlug: "123",
-    //   productQuantity: productQuantity,
-    //   productImage: productImage,
-    //   productDescription: description,
-    //   productCategory: {
-    //     categoryId: categoryFind._id,
-    //     categoryName: categoryFind.categoryName,
-    //   },
-    //   skinType: {
-    //     skinTypeId: skintypeFind._id,
-    //     skinTypeName: skintypeFind.skinType,
-    //   },
-    // });
-
-    // const result = await newProduct.save();
-
-    // // Add to categories database
-    // categoryFind.products.push({ productId: result._id });
-    // await categoryFind.save();
-
-    // skintypeFind.products.push({ productId: result._id });
-    // await skintypeFind.save(); // Đã sửa lỗi từ categoryFind.save() thành skintypeFind.save()
+    await productService.insertProduct(newProductInfo).then(() => {
+      console.log("Product has been inserted to database");
+    });
 
     return { status: 201, message: "Product has been inserted to database" };
   } catch (error) {
-    // Xóa tệp nếu có lỗi trong quá trình xử lý
     console.log(error);
-    // const filePath = path.join(
-    //   __dirname,
-    //   "../public/images/products",
-    //   productImage
-    // );
-    // fs.unlink(filePath, (err) => {
-    //   if (err) console.error("Failed to delete file:", err);
-    // });
-    // throw new Error({ error, message: "There is something wrong..." });
   }
 };
 
