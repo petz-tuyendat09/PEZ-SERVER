@@ -35,7 +35,7 @@ const productSchema = new Schema({
     required: false,
     default: "no-img.png",
   },
-  productImage: [
+  productImages: [
     {
       type: String,
       required: false,
@@ -45,12 +45,11 @@ const productSchema = new Schema({
     type: Number,
     required: true,
   },
-  categoryId: {
+  productCategory: {
     type: ObjectId,
     ref: "Categories",
     required: true,
   },
-
   productSubCategory: {
     type: ObjectId,
     required: true,
@@ -60,6 +59,17 @@ const productSchema = new Schema({
     type: String,
     required: false,
     enum: ["Chó", "Mèo"],
+  },
+  productDescription: {
+    type: String,
+    required: false,
+    default: "Đang cập nhật...",
+  },
+  productDetailDescription: {
+    type: ObjectId,
+    required: false,
+    default: null,
+    ref: "ProductDetailDescription",
   },
 });
 
