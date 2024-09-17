@@ -14,7 +14,7 @@ const productSchema = new Schema({
   },
   createdAt: {
     type: String,
-    required: true
+    required: true,
   },
   salePercent: {
     type: Number,
@@ -74,6 +74,7 @@ const productSchema = new Schema({
 });
 
 productSchema.index({ productName: 1 });
+
 module.exports = mongoose.model("Products", productSchema, "products");
 
 // sau cai productSchema la collection muon su dung, neu k co thi mongoDB su dung products la default,
