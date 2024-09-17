@@ -7,22 +7,25 @@ const { uploadFileToS3 } = require("../utils/uploadToAWS.js");
 /**
  * Tìm kiếm sản phẩm dựa trên các tiêu chí khác nhau
  * @param {object} filters - Các tiêu chí tìm kiếm sản phẩm
- * @param {string} filters.categoryName - Tên danh mục sản phẩm
+ * @param {string} filters.productCategory - Tên danh mục sản phẩm
  * @param {string} filters.productSubcategory - Tên các danh mục con của sản phẩm
  * @param {string} filters.productName - Tên sản phẩm
  * @param {number} filters.salePercent - Phần trăm giảm giá
  * @param {string} filters.productStatus - Trạng thái sản phẩm ("default" hoặc "lastest")
- * @param {string} filters.productFor - Sản phẩm dành cho chó hoặc mèo ("chó" hoăc "mèo")
+ * @param {string} filters.animalType - Sản phẩm dành cho chó hoặc mèo ("chó" hoăc "mèo")
  * @param {number} filters.limit - Số lượng sản phẩm tối đa trả về
+ * @param {number} filters.productBuy - Lượt mua của sản phẩm
  * @returns {Promise<Array>} Trả về danh sách các sản phẩm phù hợp với tiêu chí tìm kiếm
  */
 exports.queryProducts = async ({
-  categoryName,
+  productCategory,
+  productSlug,
   productSubcategory,
   productName,
   salePercent,
   productStatus = "default",
-  productFor,
+  productBuy,
+  animalType,
   limit,
 } = {}) => {
   try {
@@ -44,24 +47,27 @@ exports.queryProducts = async ({
       query.salePercent = { $gte: salePercent };
     }
 
-    if (productFor) {
-      query.productFor = new RegExp(productFor, "i");
+    if (animalType) {
+      query.animalType = new RegExp(animalType, "i");
     }
 
     // Tìm kiếm theo tên danh mục sản phẩm (nếu có)
-    if (categoryName) {
-      query["productCategory.categoryName"] = new RegExp(categoryName, "i");
+    if (productCategory) {
+      query.productCategory = categoryName;
     }
 
     // Tìm kiếm theo danh mục con (nếu có)
     if (productSubcategory) {
-      query["productSubCategory.subCategoryName"] = new RegExp(
-        productSubcategory,
-        "i"
-      );
+      query.productSubcategory = productSubcategory;
     }
 
-    console.log(productFor);
+    if (productSlug) {
+      query.productSlug = new RegExp(productSlug, "i");
+    }
+
+    if (productBuy) {
+      query.salePercent = { $gte: productBuy };
+    }
 
     // Thực hiện truy vấn
     const queryResult = await Product.find(query)

@@ -27,12 +27,14 @@ exports.getProductsWithPagination = async (req, res) => {
 exports.queryProducts = async (req, res) => {
   try {
     const filters = {
-      categoryName: req.query.categoryName,
+      productCategory: req.query.categoryName,
+      productSlug: req.query.productSlug,
       productSubcategory: req.query.productSubcategory,
       productName: req.query.productName,
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
-      productFor: req.query.productFor,
+      animalType: req.query.animalType,
+      productBuy: req.query.productBuy,
       limit: parseInt(req.query.limit, 10) || 20,
     };
 
@@ -50,8 +52,7 @@ exports.getTrendingProducts = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
-}
-
+};
 
 exports.insertProduct = async (req, res) => {
   try {
