@@ -61,11 +61,27 @@ const productSchema = new Schema({
     required: false,
     default: "Đang cập nhật...",
   },
+  productWeight: [
+    {
+      type: String,
+      required: true,
+    },
+  ],
   productDetailDescription: {
     type: ObjectId,
     required: false,
     default: null,
     ref: "ProductDetailDescription",
+  },
+  productRating: {
+    type: Number,
+    required: false,
+    default: 0,
+  },
+  ratingCount: {
+    type: Number,
+    required: false,
+    default: 0,
   },
 });
 
