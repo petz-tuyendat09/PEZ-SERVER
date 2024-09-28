@@ -20,63 +20,91 @@ const { uploadFileToS3 } = require("../utils/uploadToAWS.js");
 exports.queryProducts = async ({
   productCategory,
   productSlug,
-  productSubcategory,
+  productSubCategory,
   productName,
   salePercent,
   productStatus = "default",
   productBuy,
   animalType,
-  limit,
+  limit = 10,
+  page = 1,
 } = {}) => {
   try {
     const query = {};
     let productOrder = 1;
 
-    // Tìm kiếm theo tên sản phẩm (nếu có)
+    // Search by product name (if provided)
     if (productName) {
       query.productName = new RegExp(productName, "i");
     }
 
-    // Sắp xếp theo sản phẩm mới nhất (nếu có yêu cầu)
-    if (productStatus === "lastest") {
+    // Sort by latest products (if requested)
+    if (productStatus === "latest") {
       productOrder = -1;
     }
 
-    // Tìm kiếm theo phần trăm giảm giá (nếu có)
+    // Search by sale percentage (if provided)
     if (salePercent) {
       query.salePercent = { $gte: salePercent };
     }
 
+    // Search by animal type (if provided)
     if (animalType) {
       query.animalType = new RegExp(animalType, "i");
     }
 
-    // Tìm kiếm theo tên danh mục sản phẩm (nếu có)
+    // Search by product category (if provided)
     if (productCategory) {
-      query.productCategory = categoryName;
+      const categoriesArray = productCategory.split(',').map(id => id.trim());
+      query.productCategory = { $in: categoriesArray };
     }
 
-    // Tìm kiếm theo danh mục con (nếu có)
-    if (productSubcategory) {
-      query.productSubcategory = productSubcategory;
+    // Search by product subcategory (if provided)
+    if (productSubCategory) {
+      const subCategoriesArray = productSubCategory.split(',').map(id => id.trim());
+      query.productSubCategory = { $in: subCategoriesArray };
     }
 
+
+    // Search by product slug (if provided)
     if (productSlug) {
       query.productSlug = new RegExp(productSlug, "i");
     }
 
+    // Search by product buy (if provided)
     if (productBuy) {
       query.salePercent = { $gte: productBuy };
     }
 
-    // Thực hiện truy vấn
+    // Calculate the number of documents to skip
+
+    const skip = (page - 1) * limit;
+
+    // Get the total count of documents matching the query
+    const totalDocuments = await Product.countDocuments(query);
+
+    // Execute the query with pagination
     const queryResult = await Product.find(query)
       .limit(limit)
+      .skip(skip)
       .sort({ _id: productOrder });
 
-    return queryResult;
+    // Calculate total pages
+    const totalPages = Math.ceil(totalDocuments / limit);
+
+    // Return the results along with pagination info
+    return {
+      products: queryResult,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    };
   } catch (err) {
     console.error("Error occurred:", err.message);
+    throw err; // It's good practice to re-throw the error after logging it
   }
 };
 
@@ -127,27 +155,6 @@ exports.checkDuplicatedProduct = async (productName, files) => {
     });
 
     if (duplicatedProduct) {
-      // Lấy danh sách tên tệp từ `files`
-      // if (files) {
-      //   const filesToDelete = files.map((item) => item.originalname);
-
-      //   // Xóa tất cả các tệp tin nếu sản phẩm bị trùng
-      //   await Promise.all(
-      //     filesToDelete.map((file) => {
-      //       const filePath = path.join(
-      //         __dirname,
-      //         "../public/images/products",
-      //         file
-      //       );
-      //       return fs.promises.unlink(filePath).catch((err) => {
-      //         console.error(`Failed to delete file ${file}:`, err);
-      //       });
-      //     })
-      //   );
-
-      //   console.log("All files deleted successfully.");
-      // }
-
       return !!duplicatedProduct;
     }
 

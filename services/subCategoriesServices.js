@@ -10,8 +10,7 @@ const subCategories = require("../models/SubCategories");
 exports.querySubCategories = async ({ animalType, categoryId }) => {
   try {
     const query = {};
-    console.log(animalType);
-    console.log(categoryId);
+  
     if (animalType) {
       // Sử dụng $regex để tìm kiếm tên danh mục chứa chuỗi
       query.animalType = { $regex: animalType, $options: "i" }; // 'i' để không phân biệt chữ hoa và chữ thường

@@ -27,16 +27,18 @@ exports.getProductsWithPagination = async (req, res) => {
 exports.queryProducts = async (req, res) => {
   try {
     const filters = {
-      productCategory: req.query.categoryName,
+      productCategory: req.query.productCategory,
       productSlug: req.query.productSlug,
-      productSubcategory: req.query.productSubcategory,
+      productSubCategory: req.query.productSubCategory,
       productName: req.query.productName,
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
       animalType: req.query.animalType,
       productBuy: req.query.productBuy,
+      page: req.query.page,
       limit: parseInt(req.query.limit, 10) || 20,
     };
+
 
     const products = await productService.queryProducts(filters);
     return res.status(200).json(products);
