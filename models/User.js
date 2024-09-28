@@ -61,7 +61,7 @@ const userSchema = new Schema({
       orderTotal: Number,
     },
   ],
-  userPoint: { type: Number, required: true },
+  userPoint: { type: Number, required: false,default:0 },
   userImage: {
     type: String,
     required: false,
