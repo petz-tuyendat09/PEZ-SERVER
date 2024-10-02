@@ -24,13 +24,13 @@ exports.registerUser = async (req, res) => {
     // Kiểm tra email đã tồn tại chưa
     const isEmailExists = await authService.isEmailExists(email);
     if (isEmailExists) {
-      return res.status(409).json({ message: "Email already exists" });
+      return res.status(409).json({ message: "Email đã tồn tại" });
     }
 
     // Kiểm tra username đã tồn tại chưa
     const isUsernameExists = await authService.isUsernameExists(username);
     if (isUsernameExists) {
-      return res.status(409).json({ message: "Username already exists" });
+      return res.status(409).json({ message: "Tên đăng nhập đã tồn tại" });
     }
 
     // Tạo OTP và gửi email
@@ -38,10 +38,10 @@ exports.registerUser = async (req, res) => {
     await sendOTPUtils.sendOtpEmail(email, otp);
 
     // Lưu thông tin người dùng tạm thời
-    await authService.saveTempUser({ email, username, password, otp });
-
-    // Trả về phản hồi thành công
-    return res.status(200).json({ message: "OTP sent to email" });
+     const result = await authService.saveTempUser({ email, username, password, otp });
+    if(result) {
+      return res.status(200).json({ message: "OTP sent to email" });
+    }
   } catch (error) {
     console.error("Error in registerUser controller:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -55,10 +55,15 @@ exports.registerUser = async (req, res) => {
  * @returns {Promise<void>} - Trả về phản hồi xác nhận người dùng đã được tạo
  */
 exports.verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  const { email, otpCode } = req.body;
+  console.log(email ,otpCode);
   try {
-    await authService.verifyOtp(email, otp);
-    return res.status(201).json({ message: "User registered successfully" });
+   const {success,message} =  await authService.verifyOtp(email, otpCode);
+   if(!success) {
+    return res.status(401).json({ message: message });
+   }
+   return res.status(201).json({ message:message });
+
   } catch (error) {
     console.error("Error in OTP verification:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -73,16 +78,14 @@ exports.verifyOtp = async (req, res) => {
  */
 exports.resendOTP = async (req, res) => {
   const { email } = req.body;
-
   try {
     const otp = await sendOTPUtils.generateOTP();
     let result = await authService.resendOTP(email, otp);
 
     if (!result) {
-      return res.status(401).json({ message: "OTP resend time expired" });
+      return res.status(401).json({ message: "Đã quá thời gian đăng ký" });
     }
-
-    return res.status(201).json({ message: "OTP resend" });
+    return res.status(201).json({ message: "Đã gửi OTP, vui lòng check Mail" });
   } catch (error) {
     console.error("Error in resend OTP:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -97,20 +100,21 @@ exports.resendOTP = async (req, res) => {
  */
 exports.login = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
+    const { loginkey, password } = req.body;
+  
 
     // Xác thực người dùng
-    const existingUser = await authService.authenticateUser(identifier, password);
+    const {success,message,existingUser} = await authService.authenticateUser(loginkey, password);
 
-    if (!existingUser) {
-      return res.status(401).json({ message: "Wrong password or username" });
+    if (!success) {
+      return res.status(401).json({ message: message });
     }
 
     // Tạo JWT token và refresh token
     const token = authService.generateToken(
       existingUser._id,
       process.env.JWT_SECRET,
-      "30s"
+      "5s"
     );
     const refreshToken = authService.generateRefreshToken(
       existingUser._id,
@@ -118,25 +122,13 @@ exports.login = async (req, res) => {
       "365d"
     );
 
-    const user = {
-      username: existingUser.username,
-      userRole: existingUser.userRole,
-    };
+    const user = { ...existingUser._doc };
+    delete user.password;
+    delete user._id;
 
-    // Thiết lập cookie cho token và refresh token
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false,
-      maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: false,
-      maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
 
-    return res.status(200).json({ canLogin: true, user, token }).end();
+    return res.status(200).json({ canLogin: true, user, token, refreshToken }).end();
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -149,12 +141,13 @@ exports.login = async (req, res) => {
  * @param {object} res - Phản hồi gửi lại client
  * @returns {Promise<void>} - Trả về phản hồi chứa JWT token mới
  */
+
+
 exports.refreshToken = async (req, res) => {
   try {
-    const refreshToken = req.body.refreshToken.value;
-
+    const refreshToken = req.body.refreshToken
     if (!refreshToken) return res.status(401).json({ error: "Unauthorized" });
-
+    console.log(refreshToken);
     // Xác minh refresh token
     const payload = authService.verifyRefreshToken(
       refreshToken,
@@ -169,7 +162,7 @@ exports.refreshToken = async (req, res) => {
     const newToken = authService.generateToken(
       payload.id,
       process.env.JWT_SECRET,
-      "1m"
+      "5s"
     );
     const newRefreshToken = authService.generateRefreshToken(
       payload.id,
@@ -177,14 +170,9 @@ exports.refreshToken = async (req, res) => {
       "365d"
     );
 
-    // Thiết lập cookie cho refresh token mới
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: false,
-      maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
+ 
+    return res.status(200).json({ token: newToken,  refreshToken: newRefreshToken }).end();
 
-    return res.status(200).json({ token: newToken }).end();
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Internal Server Error" });

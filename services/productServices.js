@@ -73,8 +73,9 @@ exports.queryProducts = async ({
 
     // Search by product buy (if provided)
     if (productBuy) {
-      query.salePercent = { $gte: productBuy };
+      query.productBuy = { $gte: productBuy };
     }
+
 
     // Calculate the number of documents to skip
 
