@@ -31,7 +31,7 @@ router.get(
   }
 );
 
-router.get(
+router.post(
   "/protected",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {

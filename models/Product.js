@@ -61,10 +61,10 @@ const productSchema = new Schema({
     required: false,
     default: "Đang cập nhật...",
   },
-  productWeight: [
+  productOption: [
     {
       type: String,
-      required: true,
+      required:false,
     },
   ],
   productDetailDescription: {

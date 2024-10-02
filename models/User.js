@@ -62,6 +62,15 @@ const userSchema = new Schema({
     },
   ],
   userPoint: { type: Number, required: false,default:0 },
+  userLevel: {type:Number, require:false, default:1},
+  userExperiments: {type:Number, require:false, default:0},
+  userVoucher: [
+    {
+      type: String,
+      required: false,
+    },
+  ],
+
   userImage: {
     type: String,
     required: false,

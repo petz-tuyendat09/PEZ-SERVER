@@ -26,8 +26,9 @@ exports.sendOtpEmail = async (email,otp) => {
    const mailOptions = {
      from: process.env.EMAIL_USER,
      to: email,
-     subject: "Your OTP Code",
-     text: `Your OTP code is: ${otp}`,
+     subject: "Mã OTP đăng ký PETZ",
+     text: `Mã OTP của bạn là: ${otp}
+    OTP sẽ hết hạn trong vòng 5 phút.`,
    };
  
    await transporter.sendMail(mailOptions);

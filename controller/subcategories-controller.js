@@ -5,6 +5,7 @@ exports.querySubCategories = async (req, res) => {
     const filter = {
       animalType: req.query.animalType,
       categoryId: req.query.categoryId,
+      subCategoryId: req.query.subCategoryId
     };
 
     const result = await subCategoriesServices.querySubCategories(filter);
