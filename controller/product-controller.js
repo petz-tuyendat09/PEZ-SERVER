@@ -1,9 +1,4 @@
-const Product = require("../models/Product");
-const Categories = require("../models/Categories");
 const productService = require("../services/productServices");
-const fs = require("fs");
-const path = require("path");
-const { RequestPayer } = require("@aws-sdk/client-s3");
 
 exports.getProductsWithPagination = async (req, res) => {
   try {
