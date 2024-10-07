@@ -126,8 +126,10 @@ exports.queryProducts = async ({
 exports.checkDuplicatedProduct = async (productName) => {
   try {
     // Tìm sản phẩm với tên trùng lặp
+    const trimmedName = productName.trim().replace(/\s+/g, " ");
+
     const duplicatedProduct = await Product.findOne({
-      productName: productName,
+      productName: trimmedName,
     });
 
     if (duplicatedProduct) {
