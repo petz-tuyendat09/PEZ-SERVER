@@ -61,7 +61,6 @@ exports.registerUser = async (req, res) => {
  */
 exports.verifyOtp = async (req, res) => {
   const { email, otpCode } = req.body;
-  console.log(email, otpCode);
   try {
     const { success, message } = await authService.verifyOtp(email, otpCode);
     if (!success) {
@@ -151,7 +150,6 @@ exports.refreshToken = async (req, res) => {
   try {
     const refreshToken = req.body.refreshToken;
     if (!refreshToken) return res.status(401).json({ error: "Unauthorized" });
-    console.log(refreshToken);
     // Xác minh refresh token
     const payload = authService.verifyRefreshToken(
       refreshToken,

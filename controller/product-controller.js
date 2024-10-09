@@ -29,7 +29,6 @@ exports.queryProducts = async (req, res) => {
       productName: req.query.productName,
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
-      animalType: req.query.animalType,
       productBuy: req.query.productBuy,
       page: req.query.page,
       limit: parseInt(req.query.limit, 10) || 20,
@@ -46,12 +45,9 @@ exports.insertProduct = async (req, res) => {
   try {
     const newProductInfo = {
       productName: req.body.productName,
-      productPrice: req.body.productPrice,
       salePercent: req.body.salePercent,
-      productQuantity: req.body.productQuantity,
       productCategory: req.body.productCategory,
       productSubcategory: req.body.productSubcategory,
-      animalType: req.body.animalType,
       productDescription: req.body.productDescription,
       productOption: req.body.productOption,
       productDetailDescription: req.body.productDetailDescription,
@@ -90,12 +86,9 @@ exports.editProduct = async (req, res) => {
     const editedProductInfo = {
       productId: req.body.productId,
       productName: req.body.productName,
-      productPrice: req.body.productPrice,
       salePercent: req.body.salePercent,
-      productQuantity: req.body.productQuantity,
       productCategory: req.body.productCategory,
       productSubcategory: req.body.productSubcategory,
-      animalType: req.body.animalType,
       productDescription: req.body.productDescription,
       productOption: req.body.productOption,
       productDetailDescription: req.body.productDetailDescription,

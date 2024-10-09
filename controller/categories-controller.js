@@ -37,8 +37,6 @@ exports.editCategory = async (req, res) => {
       editCategoryName
     );
 
-    console.log(existingCategory);
-
     if (existingCategory) {
       return res.status(400).json({ message: "Tên danh mục đã tồn tại" });
     }
@@ -56,7 +54,6 @@ exports.addCategory = async (req, res) => {
   try {
     const newCategoryName = req.body.newCategoryName;
 
-    // Kiểm tra xem tên danh mục đã tồn tại chưa
     const existingCategory = await categorieServices.existingCategoryName(
       newCategoryName
     );

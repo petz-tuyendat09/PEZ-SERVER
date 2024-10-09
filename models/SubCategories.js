@@ -12,11 +12,6 @@ const subCategoriesSchema = Schema({
     ref: "Categories",
     required: true,
   },
-  animalType: {
-    type: String,
-    required: true,
-    enum: ["Chó", "Mèo"],
-  },
 });
 
 module.exports = mongoose.model(

@@ -5,7 +5,6 @@ const Categories = require("../models/Categories");
  */
 exports.queryCategories = async (categoryId) => {
   try {
-    console.log(categoryId);
     if (categoryId) {
       const queryResult = await Categories.findById(categoryId);
       return queryResult;
@@ -23,7 +22,7 @@ exports.queryCategories = async (categoryId) => {
  */
 exports.queryCategoriesPagination = async (page) => {
   try {
-    const limit = 5;
+    const limit = 4;
     const skip = (page - 1) * limit;
 
     const queryResult = await Categories.find().skip(skip).limit(limit);
