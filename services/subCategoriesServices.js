@@ -45,7 +45,7 @@ exports.querySubCategoriesByPage = async ({
 }) => {
   try {
     const query = {};
-    const limit = 5;
+    const limit = 4;
     const skip = (page - 1) * limit;
 
     if (animalType) {
@@ -74,6 +74,80 @@ exports.querySubCategoriesByPage = async ({
       totalPages: Math.ceil(total / limit),
       currentPage: page,
     };
+  } catch (err) {
+    console.error("Error occurred:", err.message);
+    throw new Error(err);
+  }
+};
+
+exports.existingSubCategoryName = async (newSubCategoryName) => {
+  try {
+    const trimmedName = newSubCategoryName.trim().replace(/\s+/g, " ");
+
+    const subCategory = await subCategories.findOne({
+      subCategoryName: trimmedName,
+    });
+    return subCategory;
+  } catch (err) {
+    console.error("Error occurred:", err.message);
+    throw new Error(err);
+  }
+};
+
+exports.editSubCategory = async (
+  editSubCategoryId,
+  newSubCategoryName,
+  newCategoryId
+) => {
+  try {
+    await subCategories.findByIdAndUpdate(editSubCategoryId, {
+      subCategoryName: newSubCategoryName,
+      categoryId: newCategoryId,
+    });
+  } catch (err) {
+    console.error("Error occurred:", err.message);
+    throw new Error(err);
+  }
+};
+
+exports.addSubCategory = async (newSubCategoryName, newCategoryId) => {
+  try {
+    const trimmedName = newSubCategoryName.trim().replace(/\s+/g, " ");
+
+    // Create a new subcategory document
+    const newSubCategory = new subCategories({
+      subCategoryName: trimmedName,
+      categoryId: newCategoryId,
+    });
+
+    // Save the new subcategory to the database
+    const savedSubCategory = await newSubCategory.save();
+
+    return savedSubCategory;
+  } catch (err) {
+    console.error("Error occurred:", err.message);
+    throw new Error(err);
+  }
+};
+
+// Delete single subcategory service
+exports.deleteSubCategoryById = async (id) => {
+  try {
+    const deletedSubCategory = await subCategories.findByIdAndDelete(id);
+    return deletedSubCategory;
+  } catch (err) {
+    console.error("Error occurred:", err.message);
+    throw new Error(err);
+  }
+};
+
+// Delete multiple subcategories service
+exports.deleteMultipleSubCategoriesByIds = async (ids) => {
+  try {
+    const deletedSubCategories = await subCategories.deleteMany({
+      _id: { $in: ids },
+    });
+    return deletedSubCategories;
   } catch (err) {
     console.error("Error occurred:", err.message);
     throw new Error(err);

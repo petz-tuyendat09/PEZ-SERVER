@@ -1,12 +1,11 @@
 // app/services/userService.js
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
-const TempUser = require("../models/TempUser")
+const TempUser = require("../models/TempUser");
 const Cart = require("../models/Cart");
 const jwt = require("jsonwebtoken");
-const SALT_ROUNDS = 10; 
-const sendOTPUtils = require("../utils/sendOTP")
-
+const SALT_ROUNDS = 10;
+const sendOTPUtils = require("../utils/sendOTP");
 
 /**
  * Kiểm tra xem email đã tồn tại trong cơ sở dữ liệu chưa
@@ -35,8 +34,7 @@ exports.isUsernameExists = async (username) => {
  * @returns {Promise<boolean>} - Trả về `true` nếu username tồn tại, ngược lại `false`
  */
 
-const isTempUserExists = async (email,otp) => {
-
+const isTempUserExists = async (email, otp) => {
   let tempUser = await TempUser.findOne({ userEmail: email });
 
   if (!tempUser) return (success = false);
@@ -47,11 +45,11 @@ const isTempUserExists = async (email,otp) => {
   await TempUser.deleteOne({ userEmail: email });
 
   const newTempUser = new TempUser({
-      userEmail: email,
-      username: username,
-      password: password,
-      otp: otp,
-    });
+    userEmail: email,
+    username: username,
+    password: password,
+    otp: otp,
+  });
   await newTempUser.save();
   return true;
 };
@@ -67,16 +65,15 @@ const isTempUserExists = async (email,otp) => {
  */
 exports.saveTempUser = async ({ email, username, password, otp }) => {
   try {
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    // Check xem đã tồn tại chưa
+    let duplicated = await isTempUserExists(email, otp);
 
-    // Check xem đã tồn tại chưa 
-    let duplicated = await isTempUserExists(email,otp);
-
-    if(duplicated) {
+    if (duplicated) {
       return true;
     }
-  
+
     // Chưa có thì tạo giùm cái
     const tempUser = new TempUser({
       userEmail: email,
@@ -89,7 +86,6 @@ exports.saveTempUser = async ({ email, username, password, otp }) => {
   } catch (error) {
     console.log("Error at  saveTempUser:", error);
   }
- 
 };
 
 /**
@@ -102,9 +98,9 @@ exports.saveTempUser = async ({ email, username, password, otp }) => {
 exports.resendOTP = async (email, otp) => {
   try {
     // Check xem user còn trong thời gian đăng ký không
-    let isValid = await isTempUserExists(email,otp)
+    let isValid = await isTempUserExists(email, otp);
 
-    if(!isValid) {
+    if (!isValid) {
       return false;
     }
     // Nếu còn thì tiến hành gửi OTP mới
@@ -127,17 +123,16 @@ exports.verifyOtp = async (email, otp) => {
     let success;
     const tempUser = await TempUser.findOne({ userEmail: email });
 
-    if(!tempUser) {
+    if (!tempUser) {
       success = false;
-      message = "OTP đã hết hạn, vui lòng đăng ký lại"
-      return {success,message};
-
+      message = "OTP đã hết hạn, vui lòng đăng ký lại";
+      return { success, message };
     }
 
     if (tempUser.otp !== otp) {
       success = false;
-      message = "Vui lòng kiểm tra lại mã OTP"
-      return {success,message};
+      message = "Vui lòng kiểm tra lại mã OTP";
+      return { success, message };
     }
 
     await createUser({
@@ -148,9 +143,9 @@ exports.verifyOtp = async (email, otp) => {
 
     await TempUser.deleteOne({ userEmail: email });
 
-    success = true
-    message = "Đăng ký thành công"
-    return {success,message};
+    success = true;
+    message = "Đăng ký thành công";
+    return { success, message };
   } catch (error) {
     console.error("Error in verifyOtp controller:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -166,19 +161,17 @@ exports.verifyOtp = async (email, otp) => {
  * @returns {Promise<object>} - Trả về thông tin người dùng mới tạo
  */
 createUser = async ({ email, username, password }) => {
+  const newCart = new Cart();
+  await newCart.save();
+
   const newUser = new User({
     username,
     password: password,
     userEmail: email,
+    userCart: newCart._id,
   });
 
   await newUser.save();
-
-  const newCart = new Cart({
-    userId: newUser._id,
-  });
-
-  await newCart.save();
 
   return newUser;
 };
@@ -194,24 +187,24 @@ exports.authenticateUser = async (loginkey, password) => {
   let message;
   const existingUser = await User.findOne({
     $or: [{ username: loginkey }, { userEmail: loginkey }],
-  });
+  }).populate("userCart");
 
   if (!existingUser) {
     success = false;
     message = "Tài khoản không tồn tại";
-    return {success,message}
-
-  };
+    return { success, message };
+  }
 
   const isPasswordValid = await bcrypt.compare(password, existingUser.password);
   if (!isPasswordValid) {
     success = false;
-    message = "Sai mật khẩu"
-    return {success,message}
-  };
+    message = "Sai mật khẩu";
+    return { success, message };
+  }
+
   success = true;
-  message = "Đăng nhập thành công, về trang home trong 3s"
-  return {success,message,existingUser};
+  message = "Đăng nhập thành công, về trang home trong 3s";
+  return { success, message, existingUser };
 };
 
 /**

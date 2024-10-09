@@ -13,7 +13,6 @@ const ProductDetailDescription = require("../models/ProductDetailDescription.js"
  * @param {string} filters.productName - Tên sản phẩm
  * @param {number} filters.salePercent - Phần trăm giảm giá
  * @param {string} filters.productStatus - Trạng thái sản phẩm ("default" hoặc "lastest")
- * @param {string} filters.animalType - Sản phẩm dành cho chó hoặc mèo ("chó" hoăc "mèo")
  * @param {number} filters.limit - Số lượng sản phẩm tối đa trả về
  * @param {number} filters.productBuy - Lượt mua của sản phẩm
  * @returns {Promise<Array>} Trả về danh sách các sản phẩm phù hợp với tiêu chí tìm kiếm
@@ -26,7 +25,6 @@ exports.queryProducts = async ({
   salePercent,
   productStatus = "default",
   productBuy,
-  animalType,
   limit = 10,
   page = 1,
 } = {}) => {
@@ -47,11 +45,6 @@ exports.queryProducts = async ({
     // Search by sale percentage (if provided)
     if (salePercent) {
       query.salePercent = { $gte: salePercent };
-    }
-
-    // Search by animal type (if provided)
-    if (animalType) {
-      query.animalType = new RegExp(animalType, "i");
     }
 
     // Search by product category (if provided)
@@ -143,6 +136,33 @@ exports.checkDuplicatedProduct = async (productName) => {
   }
 };
 
+exports.checkDuplicatedEditProduct = async (productId, productName) => {
+  try {
+    // Trim the product name and replace multiple spaces with a single space
+    const trimmedName = productName.trim().replace(/\s+/g, " ");
+
+    // Find a product with the same name
+    const duplicatedProduct = await Product.findOne({
+      productName: trimmedName,
+    });
+
+    // If a product with the same name is found
+    if (duplicatedProduct) {
+      // Check if the found product's ID is different from the current product's ID
+      if (duplicatedProduct._id.toString() !== productId.toString()) {
+        // Return true if the IDs don't match, meaning the name is duplicated for another product
+        return true;
+      }
+    }
+
+    // Return false if no duplicate name was found or if it's the same product being edited
+    return false;
+  } catch (error) {
+    console.error("Error checking duplicated product:", error);
+    throw error; // Throw error to handle it in the calling code
+  }
+};
+
 /**
  * Thêm sản phẩm vào database
  *
@@ -152,7 +172,6 @@ exports.checkDuplicatedProduct = async (productName) => {
  * @param {number} productQuantity - Số lượng sản phẩm
  * @param {string} productCategory - Tên danh mục sản phẩm
  * @param {string} productSubcategory - Tên các danh mục con của sản phẩm
- * @param {string} animalType - Sản phẩm dành cho chó hoặc mèo ("chó" hoặc "mèo")
  * @param {string} productDescription - Mô tả ngắn sản phẩm
  * @param {string} productDetailDescription - Mô tả sản phẩm chi tiết như chất liệu, dinh dưỡng
  * @param {string} productOption - Tùy chọn của sản phẩm, cân nặng, màu sắc
@@ -162,21 +181,19 @@ exports.checkDuplicatedProduct = async (productName) => {
  */
 exports.insertProduct = async ({
   productName,
-  productPrice,
   salePercent,
-  productQuantity,
   productCategory,
   productSubcategory,
-  animalType,
   productDescription,
   productDetailDescription,
-  productOption,
+  productOption, // productOption now contains price and quantity for each option
   files,
 }) => {
   try {
     let success;
     let message;
 
+    // Check for duplicated product name
     const isProductNameDuplicated = await this.checkDuplicatedProduct(
       productName
     );
@@ -189,39 +206,47 @@ exports.insertProduct = async ({
 
     const productSlug = slugify(productName, { lower: true });
 
-    // Upload thumbnail lên S3
+    // Handle file uploads for productThumbnail and productImages
     const productThumbnail = files.productThumbnail
       ? await uploadFileToS3(files.productThumbnail[0])
       : null;
 
-    // Upload các hình ảnh khác lên S3
     const productImages = files.productImages
       ? await Promise.all(files.productImages.map(uploadFileToS3))
       : [];
 
-    const newProductDetailDescription = new ProductDetailDescription({
-      detailContent: productDetailDescription,
-    });
+    // Create product detail description if provided
+    let newProductDetailDescription = null;
+    if (productDetailDescription) {
+      newProductDetailDescription = new ProductDetailDescription({
+        detailContent: productDetailDescription,
+      });
+      await newProductDetailDescription.save();
+    }
 
-    newProductDetailDescription.save();
+    const productOptionsArray = Object.values({ ...productOption });
 
-    // Tạo sản phẩm mới và lưu vào database
+    // Create new product
     const newProduct = new Product({
       productName: productName,
-      productPrice: productPrice,
       salePercent: salePercent,
       productSlug: productSlug,
-      productQuantity: productQuantity,
       productThumbnail: productThumbnail,
       productImages: productImages,
       productDescription: productDescription,
-      productOption: productOption,
-      productDetailDescription: newProductDetailDescription._id,
+      productOption: productOptionsArray.map((option) => {
+        return {
+          name: option.name,
+          productPrice: option.price,
+          productQuantity: option.quantity,
+        };
+      }),
+      productDetailDescription: newProductDetailDescription?._id || null,
       productCategory: productCategory,
       productSubCategory: productSubcategory,
-      animalType: animalType,
     });
 
+    // Save new product to the database
     await newProduct.save();
 
     success = true;
@@ -294,7 +319,6 @@ exports.deleteProduct = async (productId) => {
  * @param {number} newProductInfo.productQuantity - Số lượng sản phẩm mới
  * @param {string} newProductInfo.productCategory - ID danh mục sản phẩm mới
  * @param {string} newProductInfo.productSubcategory - ID danh mục con của sản phẩm mới
- * @param {string} newProductInfo.animalType - Loại động vật liên quan đến sản phẩm (ví dụ: "Chó" hoặc "Mèo")
  * @param {string} newProductInfo.productDescription - Mô tả ngắn về sản phẩm mới
  * @param {string[]} newProductInfo.productOption - Các tùy chọn cho sản phẩm (ví dụ: trọng lượng, kích thước)
  * @param {string} newProductInfo.productDetailDescription - Mô tả chi tiết về sản phẩm (ví dụ: chất liệu, dinh dưỡng)
@@ -311,12 +335,9 @@ exports.deleteProduct = async (productId) => {
 exports.editProduct = async ({
   productId,
   productName,
-  productPrice,
   salePercent,
-  productQuantity,
   productCategory,
   productSubcategory,
-  animalType,
   productDescription,
   productOption,
   productDetailDescription,
@@ -333,9 +354,11 @@ exports.editProduct = async ({
     }
     let updatedImageList = [...existedProduct.productImages];
 
-    const isProductNameDuplicated = await this.checkDuplicatedProduct(
+    const isProductNameDuplicated = await this.checkDuplicatedEditProduct(
+      productId,
       productName
     );
+
     if (isProductNameDuplicated) {
       success = false;
       message = "Tên sản phẩm đã tồn tại";
@@ -381,20 +404,25 @@ exports.editProduct = async ({
       await deleteFileFromS3(fileKey);
     }
 
+    const productOptionsArray = Object.values({ ...productOption });
+
     await Product.findByIdAndUpdate(
       productId,
       {
         productName: productName,
-        productPrice: productPrice,
         salePercent: salePercent,
-        productQuantity: productQuantity,
         productThumbnail: updatedThumbnail,
         productImages: updatedImageList,
         productDescription: productDescription,
-        productOption: productOption,
+        productOption: productOptionsArray.map((option) => {
+          return {
+            name: option.name,
+            productPrice: option.price,
+            productQuantity: option.quantity,
+          };
+        }),
         productCategory: productCategory,
         productSubCategory: productSubcategory,
-        animalType: animalType,
       },
       { new: true }
     ).then(() => console.log("Sản phẩm đã được cập nhật"));
