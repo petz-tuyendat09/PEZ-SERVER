@@ -8,10 +8,6 @@ const productSchema = new Schema({
     type: String,
     required: true,
   },
-  productPrice: {
-    type: Number,
-    required: true,
-  },
   salePercent: {
     type: Number,
     required: false,
@@ -37,10 +33,6 @@ const productSchema = new Schema({
       required: false,
     },
   ],
-  productQuantity: {
-    type: Number,
-    required: true,
-  },
   productCategory: {
     type: ObjectId,
     ref: "Categories",
@@ -51,20 +43,16 @@ const productSchema = new Schema({
     required: true,
     ref: "Subcategories",
   },
-  animalType: {
-    type: String,
-    required: false,
-    enum: ["Chó", "Mèo"],
-  },
   productDescription: {
     type: String,
     required: false,
     default: "Đang cập nhật...",
   },
-  productWeight: [
+  productOption: [
     {
-      type: String,
-      required: true,
+      name: { type: String, required: true },
+      productPrice: { type: Number, required: true }, // Add price field
+      productQuantity: { type: Number, required: true }, // Add quantity field
     },
   ],
   productDetailDescription: {
@@ -88,6 +76,3 @@ const productSchema = new Schema({
 productSchema.index({ productName: 1 });
 
 module.exports = mongoose.model("Products", productSchema, "products");
-
-// sau cai productSchema la collection muon su dung, neu k co thi mongoDB su dung products la default,
-// truong hop collection ten la product thi find k ra, phai chi dinh collection la product

@@ -61,7 +61,22 @@ const userSchema = new Schema({
       orderTotal: Number,
     },
   ],
-  userPoint: { type: Number, required: true },
+  userPoint: { type: Number, required: false, default: 0 },
+  userLevel: { type: Number, require: false, default: 1 },
+  userExperiments: { type: Number, require: false, default: 0 },
+  userVoucher: [
+    {
+      type: String,
+      required: false,
+    },
+  ],
+
+  userCart: {
+    type: ObjectId,
+    ref: "Cart",
+    required: true,
+  },
+
   userImage: {
     type: String,
     required: false,

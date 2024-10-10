@@ -4,9 +4,11 @@ const router = express.Router();
 const authController = require("../controller/auth-controller");
 const passport = require("passport");
 
-router.post("/register", authController.registerUser);
+router.post("/signup", authController.registerUser);
 router.post("/login", authController.login);
 router.post("/refresh-token", authController.refreshToken);
+router.post("/verify-otp", authController.verifyOtp);
+router.post("/resend-otp", authController.resendOTP);
 
 // === Google Auth ===
 router.get(
@@ -29,7 +31,7 @@ router.get(
   }
 );
 
-router.get(
+router.post(
   "/protected",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
