@@ -7,6 +7,7 @@ const productController = require("../controller/product-controller");
 
 router.get("/", productController.queryProducts);
 router.get("/page", productController.getProductsWithPagination);
+router.get("/byCategory", productController.queryProductsByCateId);
 router.post(
   "/insert-product",
   upload.fields([
@@ -16,4 +17,5 @@ router.post(
   productController.insertProduct
 );
 router.get("/trending", productController.getTrendingProducts);
+router.get("/promotional", productController.getPromotionalProducts);
 module.exports = router;
