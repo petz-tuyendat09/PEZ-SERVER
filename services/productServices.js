@@ -97,12 +97,8 @@ exports.queryProducts = async ({
     // Return the results along with pagination info
     return {
       products,
-      pagination: {
-        totalDocuments,
-        totalPages,
-        currentPage: page,
-        limit,
-      },
+      totalPages,
+      currentPage: page,
     };
   } catch (err) {
     console.error("Error occurred:", err.message);
