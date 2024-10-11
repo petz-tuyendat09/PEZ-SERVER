@@ -8,7 +8,7 @@ const voucherSchema = new Schema(
       type: Number,
       required: true,
     },
-    discountPercent: {
+    salePercent: {
       type: Number,
       required: true,
     },
