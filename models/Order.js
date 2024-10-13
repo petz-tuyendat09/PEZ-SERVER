@@ -34,7 +34,7 @@ const orderSchema = new Schema(
       required: true,
       ref: "User",
     },
-    orderAfterDiscount: {
+    totalAfterDiscount: {
       type: Number,
       required: true,
     },
