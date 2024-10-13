@@ -1,3 +1,4 @@
+const Product = require("../models/Product");
 const productService = require("../services/productServices");
 
 exports.getProductsWithPagination = async (req, res) => {
@@ -42,13 +43,20 @@ exports.queryProducts = async (req, res) => {
 };
 
 exports.queryProductsByCateId = async (req, res) => {
+  const { categoryId } = req.query;
+
+  if (!categoryId) {
+    return res.status(400).json({ error: 'categoryId is required' });
+  }
+
   try {
-    const products = await Product.find({ productCategory: req.query.categoryId });
+    const products = await Product.find({ productCategory: categoryId });
     return res.status(200).json(products);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err); 
+    return res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
-}
+};
 
 exports.getTrendingProducts = async (req, res) => {
   try {

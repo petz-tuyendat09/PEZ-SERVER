@@ -16,4 +16,5 @@ router.post(
   productController.insertProduct
 );
 router.get("/trending", productController.getTrendingProducts);
+router.get("/by-cat-id", productController.queryProductsByCateId);
 module.exports = router;
