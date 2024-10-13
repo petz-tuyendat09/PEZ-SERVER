@@ -15,6 +15,8 @@ const cartSchema = new Schema({
       productPrice: Number,
       productOption: String,
       salePercent: Number,
+      productImage: String,
+      productSlug: String,
     },
   ],
 });

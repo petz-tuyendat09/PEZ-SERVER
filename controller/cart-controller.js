@@ -9,20 +9,67 @@ exports.insertCart = async (req, res) => {
       productPrice,
       productOption,
       salePercent,
+      productSlug,
+      productImage,
     } = req.body;
 
-    // Gọi dịch vụ kiểm tra và xử lý sản phẩm trong giỏ hàng
     const updatedCart = await cartServices.handleCartItem(
       productName,
       cartId,
       productId,
       productOption,
       productPrice,
-      salePercent
+      salePercent,
+      productImage,
+      productSlug
     );
 
     return res.status(200).json(updatedCart);
   } catch (err) {
+    console.log("Error in insertCart", err);
     return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.quantityAdjust = async (req, res) => {
+  try {
+    const { adjustOption, cartId, productId, productOption } = req.body;
+
+    const updatedCart = await cartServices.adjustQuantity(
+      adjustOption,
+      cartId,
+      productId,
+      productOption
+    );
+
+    if (!updatedCart) {
+      return res.status(404).json({ message: "Không tìm thấy giỏ hàng" });
+    }
+
+    return res.status(200).json(updatedCart);
+  } catch (error) {
+    console.error("Error in quantityAdjust:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+exports.removeItem = async (req, res) => {
+  try {
+    const { cartId, productId, productOption } = req.body;
+
+    const updatedCart = await cartServices.removeProductFromCart(
+      cartId,
+      productId,
+      productOption
+    );
+
+    if (!updatedCart) {
+      return res.status(404).json({ message: "Cart or Product not found" });
+    }
+
+    return res.status(200).json(updatedCart);
+  } catch (error) {
+    console.error("Error in removeItem:", error);
+    return res.status(500).json({ error: error.message });
   }
 };
