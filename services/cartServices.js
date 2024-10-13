@@ -29,12 +29,14 @@ const checkExistItem = async (cartId, productOption, productId) => {
 };
 
 const addNewItemToCart = async (
+  productName,
   cartId,
   productId,
   productOption,
-  productName,
   productPrice,
-  salePercent
+  salePercent,
+  productImage,
+  productSlug
 ) => {
   try {
     const cart = await Cart.findById(cartId);
@@ -48,6 +50,8 @@ const addNewItemToCart = async (
       productPrice: productPrice,
       productOption: productOption,
       salePercent: salePercent,
+      productImage: productImage,
+      productSlug: productSlug,
     });
 
     await cart.save();
@@ -64,7 +68,9 @@ exports.handleCartItem = async (
   productId,
   productOption,
   productPrice,
-  salePercent
+  salePercent,
+  productImage,
+  productSlug
 ) => {
   // Kiểm tra sản phẩm có trùng productId và productOption không
   const existingItem = await checkExistItem(cartId, productOption, productId);
@@ -72,15 +78,87 @@ exports.handleCartItem = async (
   // Nếu không trùng hoặc productOption khác, thêm sản phẩm mới
   if (!existingItem) {
     return await addNewItemToCart(
+      productName,
       cartId,
       productId,
       productOption,
-      productName,
       productPrice,
-      salePercent
+      salePercent,
+      productImage,
+      productSlug
     );
   }
 
   // Nếu sản phẩm trùng, trả về cart đã được cập nhật
   return existingItem;
+};
+
+exports.adjustQuantity = async (
+  adjustOption,
+  cartId,
+  productId,
+  productOption
+) => {
+  const cart = await Cart.findById(cartId);
+
+  if (!cart) {
+    throw new Error("Cart not found");
+  }
+
+  // Find the correct item in the cart
+  const itemIndex = cart.cartItems.findIndex(
+    (item) =>
+      item.productId.toString() === productId &&
+      item.productOption === productOption
+  );
+
+  if (itemIndex === -1) {
+    throw new Error("Product not found in the cart");
+  }
+
+  // Adjust the quantity
+  if (adjustOption === "increase") {
+    cart.cartItems[itemIndex].productQuantity += 1;
+  } else if (adjustOption === "decrease") {
+    cart.cartItems[itemIndex].productQuantity -= 1;
+
+    // If quantity becomes less than 1, remove the item from the cart
+    if (cart.cartItems[itemIndex].productQuantity < 1) {
+      cart.cartItems.splice(itemIndex, 1);
+    }
+  } else {
+    throw new Error("Invalid adjust option");
+  }
+
+  // Save the updated cart
+  await cart.save();
+
+  return cart;
+};
+
+exports.removeProductFromCart = async (cartId, productId, productOption) => {
+  const cart = await Cart.findById(cartId);
+
+  if (!cart) {
+    throw new Error("Cart not found");
+  }
+
+  // Tìm sản phẩm trong giỏ hàng dựa vào productId và productOption
+  const itemIndex = cart.cartItems.findIndex(
+    (item) =>
+      item.productId.toString() === productId &&
+      item.productOption === productOption
+  );
+
+  if (itemIndex === -1) {
+    throw new Error("Product not found in the cart");
+  }
+
+  // Xóa sản phẩm khỏi giỏ hàng
+  cart.cartItems.splice(itemIndex, 1);
+
+  // Lưu lại giỏ hàng sau khi cập nhật
+  await cart.save();
+
+  return cart;
 };
