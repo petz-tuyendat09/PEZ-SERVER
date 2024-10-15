@@ -17,4 +17,6 @@ router.post(
 );
 router.get("/trending", productController.getTrendingProducts);
 router.get("/by-cat-id", productController.queryProductsByCateId);
+console.log("test block-pushing");
+
 module.exports = router;
