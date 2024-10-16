@@ -9,8 +9,10 @@ exports.queryServices = async ({ serviceType, bookingAmount }) => {
       query.serviceType = new RegExp(serviceType, "i");
     }
 
-    if (bookingAmount) {
+    if (bookingAmount == "desc") {
       bookingOrder = -1;
+    } else if (bookingAmount == "asc") {
+      bookingOrder = 1;
     }
 
     let queryResult = Services.find(query).sort({
