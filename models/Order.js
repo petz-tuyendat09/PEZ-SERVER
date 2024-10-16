@@ -15,6 +15,10 @@ const orderSchema = new Schema(
           type: Number,
           required: true,
         },
+        salePercent: {
+          type: Number,
+          require: true
+        }
       },
     ],
     orderTotal: {

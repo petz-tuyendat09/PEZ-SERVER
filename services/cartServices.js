@@ -3,7 +3,9 @@ const checkExistItem = async (cartId, productOption, productId) => {
   try {
     // Tìm cart theo cartId
     const cart = await Cart.findById(cartId);
-    if (!cart) throw new Error("Cart not found");
+    if (!cart) {
+      return;
+    }
 
     // Tìm tất cả sản phẩm có productId trùng
     const existingItems = cart.cartItems.filter((item) =>
@@ -21,7 +23,7 @@ const checkExistItem = async (cartId, productOption, productId) => {
     }
 
     // Nếu không có sản phẩm nào trùng cả productId và productOption
-    return null;
+    return;
   } catch (error) {
     console.log(error);
     throw new Error("Error checking item existence in cart");
@@ -36,13 +38,12 @@ const addNewItemToCart = async (
   productPrice,
   salePercent,
   productImage,
-  productSlug
+  productSlug,
+  userId
 ) => {
   try {
     const cart = await Cart.findById(cartId);
     if (!cart) throw new Error("Cart not found");
-
-    // Thêm sản phẩm mới vào giỏ hàng
     cart.cartItems.push({
       productId: productId,
       productName: productName,
@@ -53,7 +54,7 @@ const addNewItemToCart = async (
       productImage: productImage,
       productSlug: productSlug,
     });
-
+    cart.userId = userId;
     await cart.save();
     return cart;
   } catch (error) {
@@ -70,11 +71,12 @@ exports.handleCartItem = async (
   productPrice,
   salePercent,
   productImage,
-  productSlug
+  productSlug,
+  productQuantity,
+  userId
 ) => {
   // Kiểm tra sản phẩm có trùng productId và productOption không
   const existingItem = await checkExistItem(cartId, productOption, productId);
-
   // Nếu không trùng hoặc productOption khác, thêm sản phẩm mới
   if (!existingItem) {
     return await addNewItemToCart(
@@ -85,8 +87,11 @@ exports.handleCartItem = async (
       productPrice,
       salePercent,
       productImage,
-      productSlug
+      productSlug,
+      userId
     );
+  } else {
+    existingItem.cartItems[0].productQuantity += productQuantity;
   }
 
   // Nếu sản phẩm trùng, trả về cart đã được cập nhật
