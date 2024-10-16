@@ -5,5 +5,5 @@ const cartController = require("../controller/cart-controller");
 router.post("/", cartController.insertCart);
 router.post("/quantity-adjust", cartController.quantityAdjust);
 router.post("/remove-item", cartController.removeItem); // Thêm route xóa sản phẩm
-
+router.get("/:userId", cartController.getCartByUserId);
 module.exports = router;
