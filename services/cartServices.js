@@ -131,6 +131,8 @@ exports.adjustQuantity = async (
     if (cart.cartItems[itemIndex].productQuantity < 1) {
       cart.cartItems.splice(itemIndex, 1);
     }
+  } else if (adjustOption === "clearAll") {
+    cart.cartItems = []; // Clear all items
   } else {
     throw new Error("Invalid adjust option");
   }
@@ -143,6 +145,8 @@ exports.adjustQuantity = async (
 
 exports.removeProductFromCart = async (cartId, productId, productOption) => {
   const cart = await Cart.findById(cartId);
+
+  console.log(cartId);
 
   if (!cart) {
     throw new Error("Cart not found");

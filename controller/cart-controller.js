@@ -12,7 +12,7 @@ exports.insertCart = async (req, res) => {
       salePercent,
       productSlug,
       productImage,
-      userId
+      userId,
     } = req.body;
 
     const updatedCart = await cartServices.handleCartItem(
@@ -74,26 +74,5 @@ exports.removeItem = async (req, res) => {
   } catch (error) {
     console.error("Error in removeItem:", error);
     return res.status(500).json({ error: error.message });
-  }
-};
-
-exports.getCartByUserId = async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ message: "User ID is required" });
-    }
-
-    const carts = await Cart.find({ userId });
-
-    if (!carts.length) {
-      return res.status(404).json({ message: "No carts found for this user" });
-    }
-
-    return res.status(200).json(carts);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "An error occurred while fetching carts" });
   }
 };

@@ -70,7 +70,6 @@ const userSchema = new Schema({
       required: false,
     },
   ],
-
   userCart: {
     type: ObjectId,
     ref: "Cart",
