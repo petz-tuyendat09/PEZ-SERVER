@@ -110,6 +110,12 @@ exports.adjustQuantity = async (
     throw new Error("Cart not found");
   }
 
+  if (adjustOption === "clearAll") {
+    cart.cartItems = []; // Clear all items
+    await cart.save();
+    return cart;
+  }
+
   // Find the correct item in the cart
   const itemIndex = cart.cartItems.findIndex(
     (item) =>
@@ -131,15 +137,12 @@ exports.adjustQuantity = async (
     if (cart.cartItems[itemIndex].productQuantity < 1) {
       cart.cartItems.splice(itemIndex, 1);
     }
-  } else if (adjustOption === "clearAll") {
-    cart.cartItems = []; // Clear all items
   } else {
     throw new Error("Invalid adjust option");
   }
 
   // Save the updated cart
   await cart.save();
-
   return cart;
 };
 
