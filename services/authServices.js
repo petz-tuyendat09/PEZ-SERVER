@@ -195,6 +195,8 @@ exports.authenticateUser = async (loginkey, password) => {
     return { success, message };
   }
 
+  console.log(existingUser);
+
   const isPasswordValid = await bcrypt.compare(password, existingUser.password);
   if (!isPasswordValid) {
     success = false;
