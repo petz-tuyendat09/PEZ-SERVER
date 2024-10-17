@@ -35,11 +35,16 @@ exports.registerUser = async (req, res) => {
 
     // Tạo OTP và gửi email
     const otp = await sendOTPUtils.generateOTP();
-    await sendOTPUtils.sendOtpEmail(email, otp);
+    sendOTPUtils.sendOtpEmail(email, otp);
 
     // Lưu thông tin người dùng tạm thời
-     const result = await authService.saveTempUser({ email, username, password, otp });
-    if(result) {
+    const result = await authService.saveTempUser({
+      email,
+      username,
+      password,
+      otp,
+    });
+    if (result) {
       return res.status(200).json({ message: "OTP sent to email" });
     }
   } catch (error) {
@@ -56,14 +61,12 @@ exports.registerUser = async (req, res) => {
  */
 exports.verifyOtp = async (req, res) => {
   const { email, otpCode } = req.body;
-  console.log(email ,otpCode);
   try {
-   const {success,message} =  await authService.verifyOtp(email, otpCode);
-   if(!success) {
-    return res.status(401).json({ message: message });
-   }
-   return res.status(201).json({ message:message });
-
+    const { success, message } = await authService.verifyOtp(email, otpCode);
+    if (!success) {
+      return res.status(401).json({ message: message });
+    }
+    return res.status(201).json({ message: message });
   } catch (error) {
     console.error("Error in OTP verification:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -101,10 +104,10 @@ exports.resendOTP = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { loginkey, password } = req.body;
-  
 
     // Xác thực người dùng
-    const {success,message,existingUser} = await authService.authenticateUser(loginkey, password);
+    const { success, message, existingUser } =
+      await authService.authenticateUser(loginkey, password);
 
     if (!success) {
       return res.status(401).json({ message: message });
@@ -124,11 +127,11 @@ exports.login = async (req, res) => {
 
     const user = { ...existingUser._doc };
     delete user.password;
-    delete user._id;
 
-
-
-    return res.status(200).json({ canLogin: true, user, token, refreshToken }).end();
+    return res
+      .status(200)
+      .json({ canLogin: true, user, token, refreshToken })
+      .end();
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -142,12 +145,10 @@ exports.login = async (req, res) => {
  * @returns {Promise<void>} - Trả về phản hồi chứa JWT token mới
  */
 
-
 exports.refreshToken = async (req, res) => {
   try {
-    const refreshToken = req.body.refreshToken
+    const refreshToken = req.body.refreshToken;
     if (!refreshToken) return res.status(401).json({ error: "Unauthorized" });
-    console.log(refreshToken);
     // Xác minh refresh token
     const payload = authService.verifyRefreshToken(
       refreshToken,
@@ -170,9 +171,10 @@ exports.refreshToken = async (req, res) => {
       "365d"
     );
 
- 
-    return res.status(200).json({ token: newToken,  refreshToken: newRefreshToken }).end();
-
+    return res
+      .status(200)
+      .json({ token: newToken, refreshToken: newRefreshToken })
+      .end();
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Internal Server Error" });

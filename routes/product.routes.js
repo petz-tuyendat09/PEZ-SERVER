@@ -11,9 +11,11 @@ router.post(
   "/insert-product",
   upload.fields([
     { name: "productThumbnail", maxCount: 1 },
-    { name: "productImages", maxCount: 3 },
+    { name: "productImages", maxCount: 9 },
   ]),
   productController.insertProduct
 );
 router.get("/trending", productController.getTrendingProducts);
+router.get("/by-cat-id", productController.queryProductsByCateId);
+
 module.exports = router;

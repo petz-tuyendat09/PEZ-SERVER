@@ -1,8 +1,5 @@
 const Product = require("../models/Product");
-const Categories = require("../models/Categories");
 const productService = require("../services/productServices");
-const fs = require("fs");
-const path = require("path");
 
 exports.getProductsWithPagination = async (req, res) => {
   try {
@@ -33,17 +30,31 @@ exports.queryProducts = async (req, res) => {
       productName: req.query.productName,
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
-      animalType: req.query.animalType,
       productBuy: req.query.productBuy,
       page: req.query.page,
       limit: parseInt(req.query.limit, 10) || 20,
     };
 
-
     const products = await productService.queryProducts(filters);
     return res.status(200).json(products);
   } catch (err) {
     return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.queryProductsByCateId = async (req, res) => {
+  const { categoryId } = req.query;
+
+  if (!categoryId) {
+    return res.status(400).json({ error: 'categoryId is required' });
+  }
+
+  try {
+    const products = await Product.find({ productCategory: categoryId });
+    return res.status(200).json(products);
+  } catch (err) {
+    console.error(err); 
+    return res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
 };
 
@@ -56,180 +67,79 @@ exports.getTrendingProducts = async (req, res) => {
   }
 };
 
+exports.getPromotionalProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ salePercent: 1 });
+    return res.status(200).json(products);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 exports.insertProduct = async (req, res) => {
   try {
     const newProductInfo = {
       productName: req.body.productName,
-      productPrice: req.body.productPrice,
       salePercent: req.body.salePercent,
-      productQuantity: req.body.productQuantity,
       productCategory: req.body.productCategory,
       productSubcategory: req.body.productSubcategory,
-      animalType: req.body.animalType,
       productDescription: req.body.productDescription,
+      productOption: req.body.productOption,
+      productDetailDescription: req.body.productDetailDescription,
       files: req.files,
     };
 
-    const isProductExists = await productService.checkDuplicatedProduct(
-      newProductInfo.productName,
-      req.files
+    const { success, message } = await productService.insertProduct(
+      newProductInfo
     );
 
-    if (isProductExists) {
-      return res.status(409).json({ message: "Product duplicated" });
+    if (!success) {
+      return res.status(401).json({ message: message });
     }
-
-    await productService.insertProduct(newProductInfo).then(() => {
-      console.log("Product has been inserted to database");
-    });
-
-    return { status: 201, message: "Product has been inserted to database" };
+    return res.status(200).json({ message: message });
   } catch (error) {
     console.log(error);
   }
 };
 
-exports.deleteProduct = async (id) => {
+exports.deleteProduct = async (req, res) => {
   try {
-    //  Delete product from database
-    const deleteProduct = await Product.findByIdAndDelete(id);
-
-    if (!deleteProduct) {
-      throw new Error("Product not found");
+    const { productId } = req.body;
+    const result = productService.deleteProduct(productId);
+    if (!result) {
+      return res.status(200).json({ message: "Sản phẩm không tồn tại" });
     }
 
-    // Delete product from categories
-    await Categories.updateMany(
-      { "products.productId": id },
-      { $pull: { products: { productId: id } } }
-    );
-
-    await Skintype.updateMany(
-      { "products.productId": id },
-      { $pull: { products: { productId: id } } }
-    );
-
-    const filePath = path.join(
-      __dirname,
-      "../public/images/products",
-      deleteProduct.productImage
-    );
-
-    fs.unlink(filePath, (err) => {
-      if (err) console.error("Failed to delete file:", err);
-    });
-
-    console.log(
-      `Product with ID ${id} has been deleted and removed from categories`
-    );
+    return res.status(200).json({ message: "Xóa thành công" });
   } catch (err) {
-    throw new Error(err.message);
+    console.log("Error in Delete Product Controller:", err);
   }
 };
 
-exports.updateProduct = async (id, body, imageName) => {
+exports.editProduct = async (req, res) => {
   try {
-    const {
-      productName,
-      productPrice,
-      salePercent,
-
-      productQuantity,
-      productCategory,
-      productSkinType,
-    } = body;
-
-    const pro = await Product.findById(id);
-
-    if (!pro) {
-      throw new Error("Không tìm thấy sản phẩm");
-    }
-
-    const duplicatedProduct = await Product.findOne({
-      productName: productName,
-    });
-
-    if (duplicatedProduct) {
-      return { message: "Duplicated name" };
-    }
-
-    let categoryFind = null;
-    if (productCategory) {
-      categoryFind = await Categories.findOne({ _id: productCategory });
-    }
-    let skintypeFind = null;
-    if (productSkinType) {
-      skintypeFind = await Skintype.findOne({ _id: productSkintype });
-    }
-
-    const cateUpdate = categoryFind
-      ? {
-          categoryId: categoryFind._id,
-          categoryName: categoryFind.name,
-        }
-      : pro.productCategory;
-
-    const skinTypeUpdate = skintypeFind
-      ? {
-          skinTypeId: skintypeFind._id,
-          skinTypeName: skintypeFind.skinType,
-        }
-      : pro.skinType;
-
-    if (imageName != "") {
-      const filePath = path.join(
-        __dirname,
-        "../public/images/products",
-        pro.productImage
-      );
-
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log(`Deleted file: ${filePath}`);
-      }
-    }
-
-    const updateProduct = await Product.findByIdAndUpdate(
-      { _id: id },
-      {
-        productName: productName !== "" ? productName : pro.productName,
-        productPrice: productPrice == 0 ? pro.productPrice : productPrice,
-        salePercent: salePercent == 0 ? pro.salePercent : salePercent,
-        productQuantity:
-          productQuantity === 0 ? pro.productQuantity : productQuantity,
-        productImage: imageName || pro.productImage,
-        productCategory: cateUpdate,
-        skinType: skinTypeUpdate,
-      }
+    const editedProductInfo = {
+      productId: req.body.productId,
+      productName: req.body.productName,
+      salePercent: req.body.salePercent,
+      productCategory: req.body.productCategory,
+      productSubcategory: req.body.productSubcategory,
+      productDescription: req.body.productDescription,
+      productOption: req.body.productOption,
+      productDetailDescription: req.body.productDetailDescription,
+      removeImages: req.body.removeImages,
+      removeThumbnail: req.body.removeThumbnail,
+      files: req.files,
+    };
+    const { success, message } = await productService.editProduct(
+      editedProductInfo
     );
-    return updateProduct;
+    if (!success) {
+      return res.status(401).json({ message: message });
+    }
+
+    res.status(200).json({ message: message });
   } catch (error) {
-    throw new Error(error.message);
+    res.status(500).json({ message: error.message });
   }
-};
-
-exports.uploadImageCKEditor = async (req, res) => {
-  console.log(req.files);
-  return res.status(200).json({
-    uploaded: true,
-  });
-};
-
-exports.deleteImageCKEditor = async (req, res) => {
-  console.log("body data:", req.body);
-  // const filePath = path.join(
-  //   __dirname,
-  //   "../public/images/products",
-  //   deleteProduct.productImage
-  // );
-
-  // fs.unlink(filePath, (err) => {
-  //   if (err) console.error("Failed to delete file:", err);
-  // });
-
-  console.log(`Image has been deleted`);
-
-  return res.status(200).json({
-    uploaded: true,
-  });
 };
