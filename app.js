@@ -24,6 +24,7 @@ const productRouter = require("./routes/product.routes");
 const authRouter = require("./routes/auth.routes");
 const categoriesRouter = require("./routes/categories.routes");
 const subCategories = require("./routes/subcategories.routes");
+const userRouter = require("./routes/user.routes")
 
 require("dotenv").config({ path: ".env" });
 
@@ -69,5 +70,6 @@ app.use("/api/product", productRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/subcategories", subCategories);
+app.use("/api/users", userRouter)
 
 module.exports = app;
