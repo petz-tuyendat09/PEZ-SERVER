@@ -27,6 +27,7 @@ const subCategoriesRouter = require("./routes/subcategories.routes");
 const cartRouter = require("./routes/cart.routes");
 const voucherRouter = require("./routes/voucher.routes");
 const servicesRouter = require("./routes/services.routes");
+const bookingRouter = require("./routes/booking.routes");
 
 require("dotenv").config({ path: ".env" });
 
@@ -75,5 +76,6 @@ app.use("/api/subcategories", subCategoriesRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/voucher", voucherRouter);
 app.use("/api/services", servicesRouter);
+app.use("/api/booking", bookingRouter);
 
 module.exports = app;
