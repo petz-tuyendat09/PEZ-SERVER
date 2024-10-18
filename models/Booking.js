@@ -12,6 +12,14 @@ const bookingSchema = new Schema({
     type: String,
     required: true,
   },
+  customerEmail: {
+    type: String,
+    required: true,
+  },
+  customerPhone: {
+    type: String,
+    required: true,
+  },
   service: [
     {
       type: ObjectId,
@@ -25,9 +33,14 @@ const bookingSchema = new Schema({
   },
   bookingStatus: {
     type: String,
-    enum: ["Booked", "Done", "Cancel"],
+    enum: ["Booked", "Done", "Canceled"],
     default: "Booked",
   },
+  totalPrice: {
+    type: Number,
+    required: true,
+  },
+
   bookingHours: {
     type: String,
     required: true,
