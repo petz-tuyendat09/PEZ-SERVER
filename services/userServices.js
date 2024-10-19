@@ -10,6 +10,8 @@ const User = require("../models/User");
  * @returns {Array} - trả về mảng users object
  */
 
+
+// Get user
 const getUser = async (filter) => {
     try {
         const user = await User.findOne(filter);
@@ -22,6 +24,7 @@ const getUser = async (filter) => {
     }
 };
 
+// Get All Users
 const getAllUsers = async () => {
     try {
         const users = await User.find({}); // Fetch all users
@@ -31,6 +34,7 @@ const getAllUsers = async () => {
     }
 };
 
+// Update User Information
 const updateUser = async (userId, updateData) => {
     try {
         const updatedUser = await User.findByIdAndUpdate(
@@ -48,6 +52,8 @@ const updateUser = async (userId, updateData) => {
         return { success: false, message: error.message };
     }
 };
+
+
 
 module.exports = {
     getUser,
