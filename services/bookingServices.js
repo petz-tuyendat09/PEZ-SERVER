@@ -1,5 +1,51 @@
 const Booking = require("../models/Booking");
 
+exports.queryBooking = async (
+  customerName,
+  year,
+  month,
+  day,
+  bookingStatus,
+  page = 1,
+  limit = 5
+) => {
+  try {
+    const query = {};
+    console.log(year, month, day);
+    if (year && month && day) {
+      const startDate = new Date(year, month - 1, day, 0, 0, 0);
+      const endDate = new Date(year, month - 1, day, 23, 59, 59);
+
+      query.bookingDate = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    }
+    if (customerName) {
+      query.customerName = new RegExp(customerName, "i");
+    }
+
+    if (bookingStatus) {
+      query.bookingStatus = bookingStatus;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [bookings, totalBookings] = await Promise.all([
+      Booking.find(query).skip(skip).limit(parseInt(limit)),
+      Booking.countDocuments(query),
+    ]);
+
+    return {
+      page: parseInt(page),
+      totalPages: Math.ceil(totalBookings / limit),
+      bookings,
+    };
+  } catch (error) {
+    console.log("Error in queryBooking - BookingServices:", error);
+  }
+};
+
 exports.findBookingsByDate = async (year, month, day) => {
   try {
     const startDate = new Date(year, month - 1, day, 0, 0, 0);
