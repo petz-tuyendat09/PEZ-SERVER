@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const bcrypt = require('bcrypt');
 
 
 /**
@@ -37,9 +38,36 @@ const getAllUsers = async () => {
 // Update User Information
 const updateUser = async (userId, updateData) => {
     try {
+
+        let { newPassword,
+            displayName,
+            userPhone,
+            userImage,
+            userAddress } = updateData
+
+        console.log(newPassword)
+        // Check if the password is being updated
+        if (newPassword) {
+            // Generate a salt and hash the password
+            console.log(newPassword)
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(newPassword, salt);
+            console.log(hashedPassword)
+            newPassword = hashedPassword; // Replace the plain text password with the hashed one
+
+        }
+
+
+        // Assuming User is a Mongoose model
         const updatedUser = await User.findByIdAndUpdate(
             userId,
-            { $set: updateData }, // Set new values
+            {
+                password: newPassword,
+                displayName: displayName,
+                userPhone: userPhone,
+                userImage: userImage,
+                userAddress: userAddress
+            }, // Set new values
             { new: true, runValidators: true } // Return the updated document and apply validators
         );
 
@@ -49,6 +77,7 @@ const updateUser = async (userId, updateData) => {
 
         return { success: true, data: updatedUser };
     } catch (error) {
+        console.log(error)
         return { success: false, message: error.message };
     }
 };
