@@ -9,7 +9,7 @@ router.get("/:id", userController.getUserById);
 router.get('/', userController.getAllUsers);
 
 // update user information by ID
-router.put('/:id', userController.updateUserById);
+router.put('/', userController.updateUserById);
 
 
 module.exports = router;
