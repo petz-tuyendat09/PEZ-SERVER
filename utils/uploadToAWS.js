@@ -54,6 +54,7 @@ const deleteFileFromS3 = async (fileKey) => {
   const params = {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: fileKey, // Đường dẫn tới file trong bucket
+    ACL: "public-read", // Quyền truy cập công khai
   };
 
   try {
