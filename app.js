@@ -30,6 +30,7 @@ const voucherRouter = require("./routes/voucher.routes");
 const servicesRouter = require("./routes/services.routes");
 const bookingRouter = require("./routes/booking.routes");
 const orderRouter = require("./routes/orders.routes");
+const checkoutRouter = require("./routes/checkout.routes");
 
 require("dotenv").config({ path: ".env" });
 
@@ -81,5 +82,6 @@ app.use("/api/voucher", voucherRouter);
 app.use("/api/services", servicesRouter);
 app.use("/api/booking", bookingRouter);
 app.use("/api/orders", orderRouter);
+app.use("/api/checkout", checkoutRouter);
 
 module.exports = app;
