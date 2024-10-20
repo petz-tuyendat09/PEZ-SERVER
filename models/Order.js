@@ -4,6 +4,22 @@ const ObjectId = Schema.ObjectId;
 
 const orderSchema = new Schema(
   {
+    customerName: {
+      type: String,
+      required: true,
+    },
+    customerPhone: {
+      type: String,
+      required: true,
+    },
+    customerEmail: {
+      type: String,
+      required: true,
+    },
+    customerAddress: {
+      type: String,
+      required: true,
+    },
     productId: [
       {
         productId: {
@@ -17,8 +33,8 @@ const orderSchema = new Schema(
         },
         salePercent: {
           type: Number,
-          require: true
-        }
+          require: true,
+        },
       },
     ],
     orderTotal: {
@@ -35,7 +51,7 @@ const orderSchema = new Schema(
     },
     userId: {
       type: ObjectId,
-      required: true,
+      required: false,
       ref: "User",
     },
     totalAfterDiscount: {
