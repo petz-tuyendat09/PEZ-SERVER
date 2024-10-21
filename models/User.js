@@ -66,8 +66,9 @@ const userSchema = new Schema({
   userExperiments: { type: Number, require: false, default: 0 },
   userVoucher: [
     {
-      type: String,
+      type: ObjectId,
       required: false,
+      ref: "Voucher",
     },
   ],
   userCart: {

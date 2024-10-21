@@ -112,3 +112,18 @@ exports.editVoucher = async (req, res) => {
       .json({ message: "Server error. Could not update voucher." });
   }
 };
+
+exports.getVoucherCanExchange = async (req, res) => {
+  try {
+    const { userPoint, page = 1, limit = 10 } = req.query;
+    const vouchers = await voucherServices.getVoucherCanExchange(
+      userPoint,
+      page,
+      limit
+    );
+    res.status(200).json(vouchers);
+  } catch (error) {
+    console.log("Error in getVoucherCanExchange - controller ", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};

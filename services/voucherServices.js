@@ -3,8 +3,8 @@ const Voucher = require("../models/Voucher");
 exports.queryVoucher = async ({
   voucherId,
   page = 1,
-  salePercentSort = "asc", // Sắp xếp theo % giảm giá (discountPercent)
-  pointSort = "asc", // Sắp xếp theo điểm (voucherPoint)
+  salePercentSort, // Sắp xếp theo % giảm giá (discountPercent)
+  pointSort, // Sắp xếp theo điểm (voucherPoint)
   typeFilter = "", // Chuỗi voucherType để lọc
   limit = 5,
 }) => {
@@ -39,7 +39,7 @@ exports.queryVoucher = async ({
     // Lấy danh sách voucher với phân trang và sắp xếp
     const vouchers = await Voucher.find(query)
       .sort({
-        discountPercent: salePercentSortValue, // Sắp xếp theo % giảm giá
+        salePercent: salePercentSortValue, // Sắp xếp theo % giảm giá
         voucherPoint: pointSortValue, // Sắp xếp theo điểm (voucherPoint)
       })
       .skip(skip) // Bỏ qua các bản ghi cho phân trang
@@ -167,5 +167,32 @@ exports.editVoucher = async (
     return updatedVoucher;
   } catch (error) {
     throw new Error("Error updating voucher.");
+  }
+};
+
+exports.getVoucherCanExchange = async (userPoint, page, limit) => {
+  try {
+    const skip = (page - 1) * limit;
+
+    const vouchers = await Voucher.find({
+      voucherPoint: { $lte: userPoint },
+    })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const totalVouchers = await Voucher.countDocuments({
+      voucherPoint: { $lte: userPoint },
+    });
+
+    return {
+      totalVouchers,
+      totalPages: Math.ceil(totalVouchers / limit),
+      currentPage: page,
+      vouchers,
+    };
+  } catch (error) {
+    console.log("Error in getVoucherCanExchange - services ", error);
+    throw new Error("Failed to fetch vouchers");
   }
 };

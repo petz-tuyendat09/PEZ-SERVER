@@ -6,5 +6,6 @@ router.get("/", voucherController.getVoucher);
 router.post("/", voucherController.insertVoucher);
 router.delete("/", voucherController.deleteVoucher);
 router.put("/", voucherController.editVoucher);
+router.get("/can-exchange", voucherController.getVoucherCanExchange);
 
 module.exports = router;
