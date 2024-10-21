@@ -25,15 +25,11 @@ const orderSchema = new Schema(
         productId: {
           type: ObjectId,
           required: true,
-          ref: "Product",
+          ref: "Products",
         },
         productQuantity: {
           type: Number,
           required: true,
-        },
-        salePercent: {
-          type: Number,
-          require: true,
         },
       },
     ],
@@ -65,7 +61,7 @@ const orderSchema = new Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "CANCEL", "REFUND"],
+      enum: ["PENDING", "DELIVERING", "CANCEL"],
     },
   },
   { timestamps: true }
