@@ -39,11 +39,15 @@ const updateUserById = async (req, res) => {
 
 const getVoucherHeld = async (req, res) => {
   try {
-    const { userId } = req.query; // Get userId from query params
-    console.log(req.query);
-    console.log(userId);
-    const result = await userServices.getVoucherHeld(userId);
+    const { userId, page, salePercentSort, typeFilter, limit } = req.query;
 
+    const result = await userServices.getVoucherHeld(
+      userId,
+      page,
+      salePercentSort,
+      typeFilter,
+      limit
+    );
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in getVoucherHeld - controller:", error);

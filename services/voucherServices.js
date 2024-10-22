@@ -1,16 +1,14 @@
 const Voucher = require("../models/Voucher");
-
+const User = require("../models/User");
 exports.queryVoucher = async ({
   voucherId,
   page = 1,
-  salePercentSort, // Sắp xếp theo % giảm giá (discountPercent)
   pointSort, // Sắp xếp theo điểm (voucherPoint)
   typeFilter = "", // Chuỗi voucherType để lọc
   limit = 5,
 }) => {
   try {
     // Chuyển đổi giá trị sort thành 1 (asc) hoặc -1 (desc)
-    const salePercentSortValue = salePercentSort === "asc" ? 1 : -1;
     const pointSortValue = pointSort === "asc" ? 1 : -1;
 
     // Chuyển đổi page và limit sang số nguyên
@@ -39,7 +37,6 @@ exports.queryVoucher = async ({
     // Lấy danh sách voucher với phân trang và sắp xếp
     const vouchers = await Voucher.find(query)
       .sort({
-        salePercent: salePercentSortValue, // Sắp xếp theo % giảm giá
         voucherPoint: pointSortValue, // Sắp xếp theo điểm (voucherPoint)
       })
       .skip(skip) // Bỏ qua các bản ghi cho phân trang
@@ -193,6 +190,56 @@ exports.getVoucherCanExchange = async (userPoint, page, limit) => {
     };
   } catch (error) {
     console.log("Error in getVoucherCanExchange - services ", error);
-    throw new Error("Failed to fetch vouchers");
+  }
+};
+
+exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
+  try {
+    // Find the user by their ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return { success: false, message: "Không tìm thấy User" };
+    }
+
+    // Check if the user has enough points to exchange for the voucher
+    if (user.userPoint < voucherPoint) {
+      return {
+        success: false,
+        message: "Không đủ điểm để đổi",
+      };
+    }
+
+    // Find the voucher by its ID
+    const voucher = await Voucher.findById(voucherId);
+    if (!voucher) {
+      return {
+        success: false,
+        message: "Không tìm thấy voucher vui lòng tải lại trang",
+      };
+    }
+
+    // Deduct the voucher points from the user's points
+    user.userPoint -= voucherPoint;
+
+    // Check if the user already has the voucher
+    const existingVoucher = user.userVoucher.find(
+      (v) => v.voucherId.toString() === voucherId
+    );
+
+    if (existingVoucher) {
+      // If the voucher exists, increase the quantity
+      existingVoucher.quantity += 1;
+    } else {
+      // If the voucher does not exist, add a new entry
+      user.userVoucher.push({ voucherId, quantity: 1 });
+    }
+
+    // Save the updated user
+    await user.save();
+
+    return { success: true, message: "Đổi voucher thành công", user };
+  } catch (error) {
+    console.log("Error in changeVoucher service: ", error);
+    return { success: false, message: "Internal Server Error" };
   }
 };
