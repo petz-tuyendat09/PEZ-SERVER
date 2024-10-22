@@ -2,7 +2,6 @@ const Order = require("../models/Order");
 
 exports.getOrderByUserId = async (userId) => {
   try {
-    // Find orders by userId
     const orders = await Order.find({ userId })
       .populate({
         path: "productId.productId",

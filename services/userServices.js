@@ -74,12 +74,29 @@ const updateUser = async (userId, updateData) => {
   }
 };
 
-const getVoucherHeld = async (userId) => {
+const getVoucherHeld = async (
+  userId,
+  page = 1,
+  salePercentSort,
+  typeFilter,
+  limit = 8,
+  voucherId
+) => {
   try {
+    // Chuyển đổi giá trị sort thành 1 (asc) hoặc -1 (desc)
+
+    // Chuyển đổi page và limit sang số nguyên
+    const currentPage = parseInt(page);
+    const itemsPerPage = parseInt(limit);
+
+    // Tính offset cho phân trang
+    const skip = (currentPage - 1) * itemsPerPage;
+
+    // Lấy danh sách voucher của user
     const user = await User.findById(userId)
       .select("userVoucher") // Only select userVoucher field
       .populate({
-        path: "userVoucher", // Populate the vouchers
+        path: "userVoucher.voucherId",
         model: "Voucher", // Reference the Voucher model
       });
 
@@ -87,9 +104,63 @@ const getVoucherHeld = async (userId) => {
       throw new Error("User not found");
     }
 
-    return user.userVoucher; // Return populated vouchers
+    // Tạo điều kiện lọc dựa trên typeFilter và voucherId
+    const query = {};
+    if (typeFilter) {
+      query.voucherType = new RegExp(typeFilter, "i"); // Lọc theo voucherType
+    }
+    console.log(query);
+
+    if (voucherId) {
+      query._id = voucherId; // Lọc theo voucherId nếu có
+    }
+
+    // Lọc các voucher mà user đang giữ
+    const userVouchers = user.userVoucher.filter((voucher) => {
+      // Kiểm tra các điều kiện của query (voucherType và voucherId)
+      let isValid = true;
+      if (
+        query.voucherType &&
+        !query.voucherType.test(voucher.voucherId.voucherType)
+      ) {
+        isValid = false;
+      }
+      if (
+        query._id &&
+        voucher.voucherId._id.toString() !== query._id.toString()
+      ) {
+        isValid = false;
+      }
+      return isValid;
+    });
+
+    // Sắp xếp danh sách voucher theo salePercent và voucherPoint
+    const sortedVouchers = userVouchers.sort((a, b) => {
+      // So sánh theo salePercent, dựa trên giá trị của salePercentSort
+      if (salePercentSort === "asc") {
+        return a.voucherId.salePercent - b.voucherId.salePercent;
+      } else if (salePercentSort === "desc") {
+        return b.voucherId.salePercent - a.voucherId.salePercent;
+      } else {
+        return 0; // Không sắp xếp nếu salePercentSort không xác định
+      }
+    });
+
+    // Tính tổng số voucher và tổng số trang
+    const totalItems = sortedVouchers.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    // Lấy danh sách voucher với phân trang
+    const paginatedVouchers = sortedVouchers.slice(skip, skip + itemsPerPage);
+
+    // Trả về kết quả bao gồm thông tin phân trang
+    return {
+      vouchers: paginatedVouchers,
+      currentPage,
+      totalPages,
+    };
   } catch (error) {
-    console.log("Error in getVoucherHeld - services", error);
+    console.log("Error in getVoucherHeldWithQuery - services", error);
     throw new Error("Failed to fetch vouchers");
   }
 };
