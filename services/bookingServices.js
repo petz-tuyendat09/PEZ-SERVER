@@ -1,4 +1,5 @@
 const Booking = require("../models/Booking");
+const Service = require("../models/Services");
 
 exports.queryBooking = async (
   customerName,
@@ -56,6 +57,7 @@ exports.findBookingsByDate = async (year, month, day) => {
         $gte: startDate,
         $lte: endDate,
       },
+      bookingStatus: { $ne: "Cancel" },
     });
 
     return bookings;
@@ -114,6 +116,7 @@ exports.createBooking = async (
   bookingHours
 ) => {
   try {
+    // Extract service IDs from the selectedServices object
     const serviceIds = Object.keys(selectedServices).map((serviceType) => {
       return selectedServices[serviceType].serviceId;
     });
@@ -130,13 +133,19 @@ exports.createBooking = async (
       totalPrice: totalPrice,
     });
 
-    console.log(newBooking);
-
     // Save the booking to the database
     await newBooking.save();
+
+    // Increment the booking amount for each service
+    for (const serviceId of serviceIds) {
+      await Service.findByIdAndUpdate(serviceId, {
+        $inc: { bookingAmount: 1 },
+      });
+    }
 
     return true;
   } catch (error) {
     console.log("Error in bookingServices:", error);
+    return false;
   }
 };
