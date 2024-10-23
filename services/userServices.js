@@ -71,31 +71,6 @@ const updateUser = async (userId, updateData) => {
     );
 
     if (!updatedUser) {
-      return { success: false, message: 'User not found' };
-    }
-
-    return { success: true, data: updatedUser };
-  } catch (error) {
-    console.log(error);
-    return { success: false, message: error.message };
-  }
-};
-
-
-    // Assuming User is a Mongoose model
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        password: newPassword,
-        displayName: displayName,
-        userPhone: userPhone,
-        userImage: userImage,
-        userAddress: userAddress,
-      }, // Set new values
-      { new: true, runValidators: true } // Return the updated document and apply validators
-    );
-
-    if (!updatedUser) {
       return { success: false, message: "User not found" };
     }
 
