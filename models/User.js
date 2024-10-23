@@ -25,11 +25,6 @@ const userSchema = new Schema({
 
     default: "",
   },
-  birthDay: {
-    type: String,
-
-    default: "",
-  },
   userActive: {
     type: Boolean,
     default: false,
