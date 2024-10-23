@@ -36,8 +36,14 @@ const getAllUsers = async () => {
 // Update User Information
 const updateUser = async (userId, updateData) => {
   try {
-    let { newPassword, displayName, userPhone, userImage, userAddress } =
-      updateData;
+    let {
+      newPassword,
+      displayName,
+      birthDay,
+      userPhone,
+      userImage,
+      userAddress,
+    } = updateData;
 
     console.log(newPassword);
     // Check if the password is being updated
@@ -49,6 +55,32 @@ const updateUser = async (userId, updateData) => {
       console.log(hashedPassword);
       newPassword = hashedPassword; // Replace the plain text password with the hashed one
     }
+
+    // Assuming User is a Mongoose model
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        password: newPassword,
+        displayName: displayName,
+        birthDay: birthDay,
+        userPhone: userPhone,
+        userImage: userImage,
+        userAddress: userAddress,
+      }, // Set new values
+      { new: true, runValidators: true } // Return the updated document and apply validators
+    );
+
+    if (!updatedUser) {
+      return { success: false, message: 'User not found' };
+    }
+
+    return { success: true, data: updatedUser };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: error.message };
+  }
+};
+
 
     // Assuming User is a Mongoose model
     const updatedUser = await User.findByIdAndUpdate(
