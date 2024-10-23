@@ -4,21 +4,33 @@ const ObjectId = Schema.ObjectId;
 
 const orderSchema = new Schema(
   {
+    customerName: {
+      type: String,
+      required: true,
+    },
+    customerPhone: {
+      type: String,
+      required: true,
+    },
+    customerEmail: {
+      type: String,
+      required: true,
+    },
+    customerAddress: {
+      type: String,
+      required: true,
+    },
     productId: [
       {
         productId: {
           type: ObjectId,
           required: true,
-          ref: "Product",
+          ref: "Products",
         },
         productQuantity: {
           type: Number,
           required: true,
         },
-        salePercent: {
-          type: Number,
-          require: true
-        }
       },
     ],
     orderTotal: {
@@ -35,7 +47,7 @@ const orderSchema = new Schema(
     },
     userId: {
       type: ObjectId,
-      required: true,
+      required: false,
       ref: "User",
     },
     totalAfterDiscount: {
@@ -49,7 +61,7 @@ const orderSchema = new Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "CANCEL", "REFUND"],
+      enum: ["PENDING", "DELIVERING", "CANCEL"],
     },
   },
   { timestamps: true }

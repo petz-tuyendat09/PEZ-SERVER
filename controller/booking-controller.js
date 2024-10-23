@@ -1,5 +1,25 @@
 const bookingService = require("../services/bookingServices");
 
+exports.queryBooking = async (req, res) => {
+  try {
+    const { customerName, year, month, day, bookingStatus, page, limit } =
+      req.query;
+    const bookings = await bookingService.queryBooking(
+      customerName,
+      year,
+      month,
+      day,
+      bookingStatus,
+      page,
+      limit
+    );
+
+    res.status(200).json(bookings);
+  } catch (error) {
+    console.log("Error in queryBooking:", error);
+  }
+};
+
 exports.getBookingByDate = async (req, res) => {
   try {
     const { year, month, day } = req.query;

@@ -18,4 +18,15 @@ router.post(
 router.get("/trending", productController.getTrendingProducts);
 router.get("/by-cat-id", productController.queryProductsByCateId);
 
+router.delete("/delete-product", productController.deleteProduct);
+
+router.put(
+  "/edit-product",
+  upload.fields([
+    { name: "newThumbnail", maxCount: 1 },
+    { name: "newImages", maxCount: 9 },
+  ]),
+  productController.editProduct
+);
+
 module.exports = router;

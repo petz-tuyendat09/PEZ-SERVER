@@ -4,7 +4,6 @@ exports.getVoucher = async (req, res) => {
   try {
     const filters = {
       page: req.query.page,
-      salePercentSort: req.query.salePercentSort,
       pointSort: req.query.pointSort,
       typeFilter: req.query.typeFilter,
       limit: req.query.limit,
@@ -110,5 +109,42 @@ exports.editVoucher = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Server error. Could not update voucher." });
+  }
+};
+
+exports.getVoucherCanExchange = async (req, res) => {
+  try {
+    const { userPoint, page = 1, limit = 10 } = req.query;
+    const vouchers = await voucherServices.getVoucherCanExchange(
+      userPoint,
+      page,
+      limit
+    );
+    res.status(200).json(vouchers);
+  } catch (error) {
+    console.log("Error in getVoucherCanExchange - controller ", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+exports.changeVoucher = async (req, res) => {
+  try {
+    const { voucherPoint, voucherId, userId } = req.body;
+
+    // Call the service to handle voucher exchange logic
+    const result = await voucherServices.changeVoucher(
+      voucherPoint,
+      voucherId,
+      userId
+    );
+
+    if (result.success) {
+      res.status(200).json({ message: result.message, user: result.user });
+    } else {
+      res.status(400).json({ message: result.message });
+    }
+  } catch (error) {
+    console.log("Error in changeVoucher controller: ", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
