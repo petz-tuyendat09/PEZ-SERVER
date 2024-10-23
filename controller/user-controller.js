@@ -55,9 +55,23 @@ const getVoucherHeld = async (req, res) => {
   }
 };
 
+const test = async (req, res) => {
+  try {
+    const { userId, voucherId } = req.body;
+    console.log(userId);
+
+    const result = await userServices.decreaseUserVoucher(userId, voucherId);
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in getVoucherHeld - controller:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   getUserById,
   getAllUsers,
   updateUserById,
   getVoucherHeld,
+  test,
 };
