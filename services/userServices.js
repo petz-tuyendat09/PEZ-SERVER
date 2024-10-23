@@ -41,6 +41,7 @@ const updateUser = async (userId, updateData) => {
 
         let { newPassword,
             displayName,
+            birthDay,
             userPhone,
             userImage,
             userAddress } = updateData
@@ -64,6 +65,7 @@ const updateUser = async (userId, updateData) => {
             {
                 password: newPassword,
                 displayName: displayName,
+                birthDay: birthDay,
                 userPhone: userPhone,
                 userImage: userImage,
                 userAddress: userAddress
