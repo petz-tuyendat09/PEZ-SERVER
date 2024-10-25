@@ -9,3 +9,14 @@ exports.getOrderByUserId = async (req, res) => {
     console.log(error);
   }
 };
+
+exports.getOrderByOrderId = async (req, res) => {
+  try {
+    const { orderId } = req.query;
+    console.log(orderId);
+    const orders = await orderServices.getOrderByOrderId(orderId);
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.log(error);
+  }
+};

@@ -24,3 +24,28 @@ exports.getOrderByUserId = async (userId) => {
     throw new Error("Failed to fetch orders");
   }
 };
+
+exports.getOrderByOrderId = async (orderId) => {
+  try {
+    const orders = await Order.find({ _id: orderId })
+      .populate({
+        path: "productId.productId",
+        model: "Products",
+      })
+      .populate({
+        path: "userId",
+        model: "User",
+        select: "username userEmail userPhone",
+      })
+      .sort({ createdAt: -1 });
+
+    if (!orders.length) {
+      throw new Error("No orders found for this user");
+    }
+
+    return orders;
+  } catch (error) {
+    console.log("Error in getOrderByUserId - services:", error);
+    throw new Error("Failed to fetch orders");
+  }
+};
