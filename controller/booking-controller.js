@@ -2,9 +2,18 @@ const bookingService = require("../services/bookingServices");
 
 exports.queryBooking = async (req, res) => {
   try {
-    const { customerName, year, month, day, bookingStatus, page, limit } =
-      req.query;
+    const {
+      bookingId,
+      customerName,
+      year,
+      month,
+      day,
+      bookingStatus,
+      page,
+      limit,
+    } = req.query;
     const bookings = await bookingService.queryBooking(
+      bookingId,
       customerName,
       year,
       month,
@@ -88,5 +97,30 @@ exports.createBooking = async (req, res) => {
     res.status(200).json({ message: "Đặt lịch thành công" });
   } catch (error) {
     console.log("Error in bookingController:", error);
+  }
+};
+
+exports.cancelBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ message: "Booking ID is required" });
+    }
+
+    const bookingResult = await bookingService.cancelBookingById(bookingId);
+
+    if (!bookingResult.found) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (bookingResult.alreadyCanceled) {
+      return res.status(404).json({ message: "Booking is already canceled" });
+    }
+
+    return res.status(200).json({ message: "Booking canceled successfully" });
+  } catch (error) {
+    console.error("Error in cancelBooking:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };

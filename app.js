@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const passport = require("passport");
 const cors = require("cors");
 const MongoStore = require("connect-mongodb-session")(session);
+require("./utils/checkBooking");
 
 // Mongo Store
 
