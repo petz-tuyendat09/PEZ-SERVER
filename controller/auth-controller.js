@@ -180,3 +180,31 @@ exports.refreshToken = async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+exports.loginWithGoogle = async (req, res) => {
+  try {
+    const { googleId, displayName, email } = req.body;
+
+    const { user, token, refreshToken } = await authService.loginWithGoogle({
+      googleId,
+      displayName,
+      email,
+    });
+
+    return res.status(200).json({
+      canLogin: true,
+      message: "Đăng nhập thành công",
+      data: {
+        user,
+        token,
+        refreshToken,
+      },
+    });
+  } catch (error) {
+    console.error("Error in loginWithGoogle controller:", error);
+    return res.status(500).json({
+      canLogin: false,
+      message: "Đã xảy ra lỗi trong quá trình đăng nhập",
+    });
+  }
+};

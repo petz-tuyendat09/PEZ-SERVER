@@ -82,8 +82,6 @@ exports.createBooking = async (req, res) => {
       bookingHours,
     } = req.body;
 
-    console.log(req.body);
-
     await bookingService.createBooking(
       userId,
       customerName,
@@ -122,5 +120,37 @@ exports.cancelBooking = async (req, res) => {
   } catch (error) {
     console.error("Error in cancelBooking:", error);
     return res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.reviewBooking = async (req, res) => {
+  try {
+    const { userId, customerName, bookingId, rating, review, services } =
+      req.body;
+
+    const result = await bookingService.handleReview({
+      userId,
+      customerName,
+      bookingId,
+      rating,
+      review,
+      services,
+    });
+
+    if (!result.success) {
+      return res.status(404).json({ success: false, message: result.message });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Review thành công",
+      data: result.data,
+      userPoint: result.userPoint,
+    });
+  } catch (error) {
+    console.log("Error in bookingController:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };

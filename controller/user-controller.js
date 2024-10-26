@@ -58,7 +58,6 @@ const getVoucherHeld = async (req, res) => {
 const test = async (req, res) => {
   try {
     const { userId, voucherId } = req.body;
-    console.log(userId);
 
     const result = await userServices.decreaseUserVoucher(userId, voucherId);
     return res.status(200).json(result);

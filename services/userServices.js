@@ -56,6 +56,8 @@ const updateUser = async (userId, updateData) => {
       newPassword = hashedPassword; // Replace the plain text password with the hashed one
     }
 
+    console.log(userAddress);
+
     // Assuming User is a Mongoose model
     const updatedUser = await User.findByIdAndUpdate(
       userId,

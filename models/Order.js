@@ -69,7 +69,7 @@ const orderSchema = new Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "CANCEL"],
+      enum: ["PENDING", "DELIVERING", "CANCELLED"],
     },
   },
   { timestamps: true }

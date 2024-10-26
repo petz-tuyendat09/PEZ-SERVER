@@ -1,6 +1,10 @@
 const Booking = require("../models/Booking");
 const Service = require("../models/Services");
+const Review = require("../models/Review");
+const User = require("../models/User");
+
 const moment = require("moment");
+const { sendBookingEmail } = require("../utils/sendBookingEmail");
 
 exports.queryBooking = async (
   bookingId,
@@ -157,6 +161,19 @@ exports.createBooking = async (
       });
     }
 
+    // Tìm chi tiết dịch vụ đã đặt
+    const servicesDetails = await Service.find({
+      _id: { $in: serviceIds },
+    });
+
+    sendBookingEmail(customerEmail, {
+      customerName,
+      servicesDetails,
+      totalPrice,
+      bookingDate,
+      bookingHours,
+    });
+
     return true;
   } catch (error) {
     console.log("Error in bookingServices:", error);
@@ -221,5 +238,55 @@ exports.checkAndCancelPendingBookings = async () => {
     }
   } catch (error) {
     console.error("Error in checkAndCancelPendingBookings:", error);
+  }
+};
+
+exports.handleReview = async ({
+  userId,
+  customerName,
+  bookingId,
+  rating,
+  review,
+  services,
+}) => {
+  try {
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return { success: false, message: "Booking not found" };
+    }
+
+    const newReview = await Review.create({
+      bookingId,
+      userId,
+      rating,
+      comment: review,
+      customerName,
+      services,
+    });
+
+    booking.reviewStatus = true;
+    await booking.save();
+
+    let additionalPoints = 50;
+
+    const wordCount = review.trim().split(/\s+/).length;
+    if (wordCount > 50) {
+      additionalPoints += 50;
+    }
+
+    const user = await User.findById(userId);
+    if (user) {
+      user.userPoint = (user.userPoint || 0) + additionalPoints;
+      await user.save();
+    }
+
+    return { success: true, userPoint: user.userPoint, data: newReview };
+  } catch (error) {
+    console.log("Error in bookingServices // bookingController:", error);
+    return {
+      success: false,
+      message: "Error handling review",
+      error: error.message,
+    };
   }
 };
