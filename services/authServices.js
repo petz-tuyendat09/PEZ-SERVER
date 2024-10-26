@@ -266,3 +266,49 @@ exports.generateToken = (userId, secret, expiresIn) => {
 exports.generateRefreshToken = (userId, secret, expiresIn) => {
   return jwt.sign({ id: userId }, secret, { expiresIn });
 };
+
+exports.loginWithGoogle = async ({ googleId, displayName, email }) => {
+  try {
+    let user = await User.findOne({ userEmail: email }).populate("userCart");
+
+    if (user) {
+      // Nếu người dùng đã tồn tại, gán googleId cho người dùng đó
+      user.googleId = googleId;
+      await user.save();
+    } else {
+      // Nếu người dùng không tồn tại, tạo người dùng mới và giỏ hàng
+      const newCart = new Cart();
+      await newCart.save();
+
+      user = await new User({
+        googleId: googleId,
+        username: email,
+        userEmail: email,
+        userActive: true,
+        displayName: displayName,
+        userCart: newCart._id,
+      }).save();
+
+      // Populate userCart khi người dùng mới được tạo
+      user = await user.populate("userCart").execPopulate();
+    }
+
+    // Tạo token và refresh token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h", // Thiết lập thời gian hết hạn cho token
+    });
+
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_REFRESH_SECRET,
+      {
+        expiresIn: "365d", // Thiết lập thời gian hết hạn cho refresh token
+      }
+    );
+
+    return { user, token, refreshToken };
+  } catch (error) {
+    console.error("Error in loginWithGoogle service:", error);
+    throw error;
+  }
+};
