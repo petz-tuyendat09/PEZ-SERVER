@@ -65,8 +65,10 @@ const isTempUserExists = async (email, otp) => {
  */
 exports.saveTempUser = async ({ email, username, password, otp }) => {
   try {
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
+    let hashedPassword;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    }
     // Check xem đã tồn tại chưa
     let duplicated = await isTempUserExists(email, otp);
 
@@ -310,5 +312,65 @@ exports.loginWithGoogle = async ({ googleId, displayName, email }) => {
   } catch (error) {
     console.error("Error in loginWithGoogle service:", error);
     throw error;
+  }
+};
+
+exports.verifyOtpForgetPassword = async ({ email, otpCode }) => {
+  try {
+    let message;
+    let success;
+    const tempUser = await TempUser.findOne({ userEmail: email });
+    console.log(email);
+
+    if (!tempUser) {
+      success = false;
+      message = "OTP đã hết hạn, vui lòng thử lại";
+      return { success, message };
+    }
+
+    console.log("OTP trong tempuser", tempUser.otp);
+    console.log("OTP Client gửi:", otpCode);
+
+    if (tempUser.otp !== otpCode) {
+      success = false;
+      message = "Vui lòng kiểm tra lại mã OTP";
+      return { success, message };
+    }
+
+    await TempUser.deleteOne({ userEmail: email });
+
+    success = true;
+    message = "Xác minh thành công";
+    return { success, message };
+  } catch (error) {
+    console.error("Error in verifyOtp controller:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.resetPassword = async ({ email, newPassword }) => {
+  try {
+    // Tìm user theo email
+    const user = await User.findOne({ userEmail: email });
+    console.log(email);
+    console.log(user);
+    if (!user) {
+      return { success: false, message: "Không tìm thấy user" };
+    }
+
+    // Nếu mật khẩu mới tồn tại, tiến hành hash mật khẩu
+    if (newPassword) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      // Cập nhật mật khẩu mới cho user
+      user.password = hashedPassword;
+      await user.save(); // Lưu thay đổi vào cơ sở dữ liệu
+    }
+
+    return { success: true, message: "Đổi mật khẩu thành công" };
+  } catch (error) {
+    console.error("Error in resetPassword service:", error);
+    return { success: false, message: "Internal server error" };
   }
 };
