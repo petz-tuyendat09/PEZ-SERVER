@@ -11,25 +11,7 @@ router.post("/verify-otp", authController.verifyOtp);
 router.post("/resend-otp", authController.resendOTP);
 
 // === Google Auth ===
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
-
-router.get(
-  "/google/callback",
-  passport.authenticate("google", { session: false }),
-  (req, res) => {
-    // Successful authentication, send user and token to the client
-
-    req.session.refreshToken = req.user.refreshToken; // Save refreshToken in session
-
-    res.json({
-      user: req.user.user,
-      token: req.user.token,
-    });
-  }
-);
+router.post("/google", authController.loginWithGoogle);
 
 router.post(
   "/protected",

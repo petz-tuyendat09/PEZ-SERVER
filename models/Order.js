@@ -31,6 +31,14 @@ const orderSchema = new Schema(
           type: Number,
           required: true,
         },
+        productOption: {
+          type: String,
+          required: true,
+        },
+        productPrice: {
+          type: Number,
+          required: true,
+        },
       },
     ],
     orderTotal: {
@@ -61,7 +69,7 @@ const orderSchema = new Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "CANCEL"],
+      enum: ["PENDING", "DELIVERING", "CANCELLED"],
     },
   },
   { timestamps: true }

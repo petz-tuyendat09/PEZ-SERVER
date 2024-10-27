@@ -9,7 +9,8 @@ const serviceSchema = Schema({
   },
   bookingAmount: {
     type: Number,
-    required: true,
+    required: false,
+    default: 0,
   },
   servicePrice: {
     type: Number,
@@ -17,10 +18,6 @@ const serviceSchema = Schema({
   },
   serviceDuration: {
     type: Number,
-    required: true,
-  },
-  serviceDescription: {
-    type: String,
     required: true,
   },
   serviceType: {

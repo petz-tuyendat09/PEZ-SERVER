@@ -3,6 +3,7 @@ const User = require("../models/User");
 require("dotenv").config({ path: ".env" });
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
+const Cart = require("../models/Cart");
 
 passport.use(
   new GoogleStrategy(
@@ -15,19 +16,29 @@ passport.use(
       try {
         const googleId = profile.id;
         const displayName = profile.displayName;
-        const email = profile.emails[0].value; // Get the email from the profile
+        const email = profile.emails[0].value;
 
-        let user = await User.findOne({ googleId });
+        let user = await User.findOne({ userEmail: email });
+        console.log(user);
 
-        if (!user) {
+        if (user) {
+          user.googleId = googleId;
+          await user.save();
+        } else {
+          const newCart = new Cart();
+          await newCart.save();
+
           user = await new User({
             googleId: googleId,
+            username: email,
             userEmail: email,
             userActive: true,
             displayName: displayName,
+            userCart: newCart._id,
           }).save();
         }
 
+        // Tạo token và refreshToken
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
           expiresIn: "1m", // Set the token expiration time
         });

@@ -36,6 +36,10 @@ const bookingSchema = new Schema({
     enum: ["Booked", "Done", "Canceled"],
     default: "Booked",
   },
+  reviewStatus: {
+    type: Boolean,
+    default: false,
+  },
   totalPrice: {
     type: Number,
     required: true,
