@@ -45,7 +45,7 @@ exports.insertOrders = async (req, res) => {
       customerPhone, 
       customerEmail, 
       customerAddress, 
-      productId,
+      products,
       orderTotal, 
       voucherId,
       orderDiscount, 
