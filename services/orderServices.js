@@ -46,7 +46,7 @@ exports.queryOrders = async ({
   const orders = await Order.aggregate([
     {
       $addFields: {
-        productCount: { $size: "$productId" },
+        productCount: { $size: "$products" },
       },
     },
     { $match: query },
@@ -70,7 +70,7 @@ exports.getOrderByUserId = async (userId) => {
     if (userId) {
       const orders = await Order.find({ userId })
         .populate({
-          path: "productId.productId",
+          path: "products.productId",
           model: "Products",
         })
         .populate({
@@ -96,7 +96,7 @@ exports.getOrderByOrderId = async (orderId) => {
   try {
     const orders = await Order.find({ _id: orderId })
       .populate({
-        path: "productId.productId",
+        path: "products.productId",
         model: "Products",
       })
       .populate({
@@ -137,4 +137,29 @@ exports.cancelOrder = async (orderId) => {
       error: error.message,
     };
   }
+};
+
+exports.updateOrderStatus = async (orderId, newStatus) => {
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  const currentStatus = order.orderStatus;
+
+  if (
+    (currentStatus === "PENDING" && newStatus === "PENDING") ||
+    (currentStatus === "DELIVERING" && newStatus === "PENDING") ||
+    (currentStatus === "DELIVERING" && newStatus === "DELIVERING") ||
+    (currentStatus === "DELIVERED" && newStatus !== "DELIVERED") ||
+    (currentStatus === "CANCELLED" && newStatus !== "CANCELLED")
+  ) {
+    return null; // Invalid transition
+  }
+
+  // Update the order status
+  order.orderStatus = newStatus;
+  await order.save();
+  return order;
 };

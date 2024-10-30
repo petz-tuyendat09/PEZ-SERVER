@@ -81,3 +81,36 @@ exports.cancelOrder = async (req, res) => {
       .json({ success: false, message: "Server Error", error: error.message });
   }
 };
+exports.editOrderStatus = async (req, res) => {
+  try {
+    const { orderId, newStatus } = req.body;
+    if (!orderId || !newStatus) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID and new status are required.",
+      });
+    }
+
+    const updatedOrder = await orderServices.updateOrderStatus(
+      orderId,
+      newStatus
+    );
+    if (!updatedOrder) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể đổi sang trạng thái trước đó.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order status updated successfully.",
+      data: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Error in editOrderStatus: ", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server Error", error: error.message });
+  }
+};

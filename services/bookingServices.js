@@ -20,8 +20,8 @@ exports.queryBooking = async (
     const query = {};
 
     if (year && month && day) {
-      const startDate = new Date(year, month - 1, day, 0, 0, 0);
-      const endDate = new Date(year, month - 1, day, 23, 59, 59);
+      const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+      const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
 
       query.bookingDate = {
         $gte: startDate,
@@ -67,8 +67,8 @@ exports.queryBooking = async (
 
 exports.findBookingsByDate = async (year, month, day) => {
   try {
-    const startDate = new Date(year, month - 1, day, 0, 0, 0);
-    const endDate = new Date(year, month - 1, day, 23, 59, 59);
+    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
 
     const bookings = await Booking.find({
       bookingDate: {
@@ -96,8 +96,8 @@ exports.queryBookingUserId = async (
   const query = { userId };
 
   if (year && month && day) {
-    const startDate = new Date(year, month - 1, day, 0, 0, 0);
-    const endDate = new Date(year, month - 1, day, 23, 59, 59);
+    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
 
     query.bookingDate = {
       $gte: startDate,
@@ -211,12 +211,11 @@ exports.checkAndCancelPendingBookings = async () => {
   try {
     // Get the current date and time
     const currentTime = moment();
-    console.log(currentTime);
 
     const pendingBookings = await Booking.find({
       bookingDate: {
-        $gte: moment(currentTime).startOf("day").toDate(),
-        $lt: moment(currentTime).endOf("day").toDate(),
+        $gte: moment(currentTime).utc().startOf("day").toDate(),
+        $lt: moment(currentTime).utc().endOf("day").toDate(),
       },
       bookingStatus: "Booked",
     });
@@ -226,6 +225,7 @@ exports.checkAndCancelPendingBookings = async () => {
         `${moment(currentTime).format("YYYY-MM-DD")} ${booking.bookingHours}`,
         "YYYY-MM-DD HH:mm"
       );
+      console.log(bookingHourMoment);
 
       if (bookingHourMoment.isBefore(currentTime)) {
         await Booking.findByIdAndUpdate(booking._id, {

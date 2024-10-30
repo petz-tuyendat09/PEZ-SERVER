@@ -197,8 +197,6 @@ exports.authenticateUser = async (loginkey, password) => {
     return { success, message };
   }
 
-  console.log(existingUser);
-
   const isPasswordValid = await bcrypt.compare(password, existingUser.password);
   if (!isPasswordValid) {
     success = false;
@@ -271,28 +269,31 @@ exports.generateRefreshToken = (userId, secret, expiresIn) => {
 
 exports.loginWithGoogle = async ({ googleId, displayName, email }) => {
   try {
-    let user = await User.findOne({ userEmail: email }).populate("userCart");
+    // Tìm người dùng dựa trên email
+    let user = await User.findOne({ userEmail: email });
 
     if (user) {
-      // Nếu người dùng đã tồn tại, gán googleId cho người dùng đó
+      // Nếu người dùng đã tồn tại, gán googleId và populate giỏ hàng
       user.googleId = googleId;
       await user.save();
+      user = await user.populate("userCart");
     } else {
       // Nếu người dùng không tồn tại, tạo người dùng mới và giỏ hàng
       const newCart = new Cart();
       await newCart.save();
 
-      user = await new User({
+      user = new User({
         googleId: googleId,
         username: email,
         userEmail: email,
         userActive: true,
         displayName: displayName,
         userCart: newCart._id,
-      }).save();
+      });
+      await user.save();
 
-      // Populate userCart khi người dùng mới được tạo
-      user = await user.populate("userCart").execPopulate();
+      // Populate giỏ hàng cho người dùng mới
+      user = await user.populate("userCart");
     }
 
     // Tạo token và refresh token
@@ -320,16 +321,12 @@ exports.verifyOtpForgetPassword = async ({ email, otpCode }) => {
     let message;
     let success;
     const tempUser = await TempUser.findOne({ userEmail: email });
-    console.log(email);
 
     if (!tempUser) {
       success = false;
       message = "OTP đã hết hạn, vui lòng thử lại";
       return { success, message };
     }
-
-    console.log("OTP trong tempuser", tempUser.otp);
-    console.log("OTP Client gửi:", otpCode);
 
     if (tempUser.otp !== otpCode) {
       success = false;
@@ -352,8 +349,7 @@ exports.resetPassword = async ({ email, newPassword }) => {
   try {
     // Tìm user theo email
     const user = await User.findOne({ userEmail: email });
-    console.log(email);
-    console.log(user);
+
     if (!user) {
       return { success: false, message: "Không tìm thấy user" };
     }
