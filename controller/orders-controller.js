@@ -1,3 +1,4 @@
+const Order = require("../models/Order");
 const orderServices = require("../services/orderServices");
 
 exports.getOrderByUserId = async (req, res) => {
@@ -22,6 +23,43 @@ exports.getOrderByOrderId = async (req, res) => {
     console.log(error);
   }
 };
+
+exports.insertOrders = async (req, res) => {
+  try {
+    const { 
+      customerName, 
+      customerPhone, 
+      customerEmail, 
+      customerAddress, 
+      products,
+      orderTotal, 
+      voucherId,
+      orderDiscount, 
+      userId, 
+      totalAfterDiscount, 
+      paymentMethod, 
+      orderStatus
+    } = req.body
+    const OrderModel = new Order({
+      customerName, 
+      customerPhone, 
+      customerEmail, 
+      customerAddress, 
+      products,
+      orderTotal, 
+      voucherId,
+      orderDiscount, 
+      userId, 
+      totalAfterDiscount, 
+      paymentMethod, 
+      orderStatus
+    })
+    const savedOrder = await OrderModel.save();
+    return res.status(200).json({ success: true, data: savedOrder })
+  } catch (error) {
+    console.log(error);
+  }
+}
 
 exports.queryOrders = async (req, res) => {
   try {
