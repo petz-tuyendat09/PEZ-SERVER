@@ -20,7 +20,7 @@ const orderSchema = new Schema(
       type: String,
       required: true,
     },
-    productId: [
+    products: [
       {
         productId: {
           type: ObjectId,
