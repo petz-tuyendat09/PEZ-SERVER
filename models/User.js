@@ -62,8 +62,6 @@ const userSchema = new Schema({
     },
   ],
   userPoint: { type: Number, required: false, default: 0 },
-  userLevel: { type: Number, require: false, default: 1 },
-  userExperiments: { type: Number, require: false, default: 0 },
   userVoucher: [
     {
       voucherId: {
@@ -83,12 +81,6 @@ const userSchema = new Schema({
     type: ObjectId,
     ref: "Cart",
     required: true,
-  },
-
-  userImage: {
-    type: String,
-    required: false,
-    default: "default-user-image.png",
   },
 });
 

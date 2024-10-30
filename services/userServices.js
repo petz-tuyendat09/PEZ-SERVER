@@ -45,18 +45,13 @@ const updateUser = async (userId, updateData) => {
       userAddress,
     } = updateData;
 
-    console.log(newPassword);
     // Check if the password is being updated
     if (newPassword) {
       // Generate a salt and hash the password
-      console.log(newPassword);
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
-      console.log(hashedPassword);
       newPassword = hashedPassword; // Replace the plain text password with the hashed one
     }
-
-    console.log(userAddress);
 
     // Assuming User is a Mongoose model
     const updatedUser = await User.findByIdAndUpdate(
@@ -110,7 +105,6 @@ const getVoucherHeld = async (
     if (typeFilter) {
       query.voucherType = new RegExp(typeFilter, "i");
     }
-    console.log(query);
 
     if (voucherId) {
       query._id = voucherId;
