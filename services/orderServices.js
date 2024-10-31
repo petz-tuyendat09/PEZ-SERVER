@@ -10,6 +10,7 @@ exports.queryOrders = async ({
   customerName,
   totalPriceSort,
   productQuantitySort,
+  orderStatus,
 }) => {
   const query = {};
 
@@ -24,6 +25,10 @@ exports.queryOrders = async ({
     query.userId = { $ne: null }; // Fetch orders where userId is not null
   } else if (userId === "no") {
     query.userId = null; // Fetch orders where userId is null
+  }
+
+  if (orderStatus) {
+    query.orderStatus = orderStatus;
   }
 
   // Filter by customer name if provided

@@ -207,6 +207,29 @@ exports.cancelBookingById = async (bookingId) => {
   }
 };
 
+exports.doneBookingById = async (bookingId) => {
+  try {
+    // Find the booking first to check its current status
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return { found: false };
+    }
+
+    if (booking.bookingStatus === "Done") {
+      return { alreadyDone: true };
+    }
+
+    booking.bookingStatus = "Done";
+    await booking.save();
+
+    return { found: true, alreadyDone: false };
+  } catch (error) {
+    console.error("Error in cancelBookingById:", error);
+    return { found: false, error: true };
+  }
+};
+
 exports.checkAndCancelPendingBookings = async () => {
   try {
     // Get the current date and time
