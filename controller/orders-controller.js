@@ -26,40 +26,41 @@ exports.getOrderByOrderId = async (req, res) => {
 
 exports.insertOrders = async (req, res) => {
   try {
-    const { 
-      customerName, 
-      customerPhone, 
-      customerEmail, 
-      customerAddress, 
+    const {
+      customerName,
+      customerPhone,
+      customerEmail,
+      customerAddress,
       products,
-      orderTotal, 
+      orderTotal,
       voucherId,
-      orderDiscount, 
-      userId, 
-      totalAfterDiscount, 
-      paymentMethod, 
-      orderStatus
-    } = req.body
+      orderDiscount,
+      userId,
+      totalAfterDiscount,
+      paymentMethod,
+      orderStatus,
+    } = req.body;
     const OrderModel = new Order({
-      customerName, 
-      customerPhone, 
-      customerEmail, 
-      customerAddress, 
+      customerName,
+      customerPhone,
+      customerEmail,
+      customerAddress,
       products,
-      orderTotal, 
+      orderTotal,
       voucherId,
-      orderDiscount, 
-      userId, 
-      totalAfterDiscount, 
-      paymentMethod, 
-      orderStatus
-    })
+      orderDiscount,
+      userId,
+      totalAfterDiscount,
+      paymentMethod,
+      orderStatus,
+    });
+
     const savedOrder = await OrderModel.save();
-    return res.status(200).json({ success: true, data: savedOrder })
+    return res.status(200).json({ success: true, data: savedOrder });
   } catch (error) {
     console.log(error);
   }
-}
+};
 
 exports.queryOrders = async (req, res) => {
   try {
@@ -73,6 +74,7 @@ exports.queryOrders = async (req, res) => {
       customerName,
       totalPriceSort,
       productQuantitySort,
+      orderStatus,
     } = req.query;
 
     const orders = await orderServices.queryOrders({
@@ -85,6 +87,7 @@ exports.queryOrders = async (req, res) => {
       customerName,
       totalPriceSort,
       productQuantitySort,
+      orderStatus,
     });
 
     res.status(200).json(orders);
