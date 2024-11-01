@@ -1,6 +1,7 @@
 const Order = require("../models/Order");
+const Product = require("../models/Product");
 const orderServices = require("../services/orderServices");
-
+const User = require("../models/User");
 exports.getOrderByUserId = async (req, res) => {
   try {
     const { userId } = req.query;
@@ -34,12 +35,14 @@ exports.insertOrders = async (req, res) => {
       products,
       orderTotal,
       voucherId,
-      orderDiscount,
-      userId,
-      totalAfterDiscount,
-      paymentMethod,
-      orderStatus,
+      orderDiscount, 
+      userId, 
+      totalAfterDiscount, 
+      paymentMethod, 
+      orderStatus 
     } = req.body;
+
+
     const OrderModel = new Order({
       customerName,
       customerPhone,
@@ -48,19 +51,48 @@ exports.insertOrders = async (req, res) => {
       products,
       orderTotal,
       voucherId,
-      orderDiscount,
-      userId,
-      totalAfterDiscount,
-      paymentMethod,
-      orderStatus,
+      orderDiscount, 
+      userId, 
+      totalAfterDiscount, 
+      paymentMethod, 
+      orderStatus
     });
 
+    const productUpdates = products.map(async (item) => {
+      const product = await Product.findOne({ _id: item.productId, "productOption.name": item.productOption });
+      if (product) {
+        const option = product.productOption.find(option => option.name === item.productOption);
+        if (option && option.productQuantity >= item.productQuantity) {
+          option.productQuantity -= item.productQuantity;
+          await product.save(); 
+        }
+      }
+    });
+    
+    if (userId) {
+      await User.findByIdAndUpdate(
+        userId,
+        {
+          $push: {
+            userOrders: {
+              orderDate: new Date(),
+              orderId: savedOrder._id,
+              orderTotal: totalAfterDiscount,
+            },
+          },
+        },
+        { new: true }
+      );
+    }
+    await Promise.all(productUpdates); 
     const savedOrder = await OrderModel.save();
     return res.status(200).json({ success: true, data: savedOrder });
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 exports.queryOrders = async (req, res) => {
   try {
