@@ -49,6 +49,7 @@ const userSchema = new Schema({
     type: String,
     required: false,
     enum: ["admin", "user", "spa", "manager", "seller"],
+
     default: "user",
   },
   userOrders: [

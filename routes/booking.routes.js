@@ -9,5 +9,6 @@ router.get("/booking-userId/", bookingController.getBookingByUserId);
 router.put("/cancel-booking", bookingController.cancelBooking);
 router.put("/done-booking", bookingController.doneBooking);
 router.post("/review-booking", bookingController.reviewBooking);
+router.get("/get-review", bookingController.getReview);
 
 module.exports = router;
