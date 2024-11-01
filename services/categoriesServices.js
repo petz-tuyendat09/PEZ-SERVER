@@ -1,5 +1,7 @@
 const Categories = require("../models/Categories");
-
+const Subcategories = require("../models/SubCategories");
+const Product = require("../models/Product.js");
+const productServices = require("../services/productServices.js");
 /**
  * Tìm kiếm danh mục
  */
@@ -75,9 +77,37 @@ exports.addCategory = async (newCategoryName) => {
   }
 };
 
-exports.deleteCategory = async (deleteCategoryId) => {
+exports.deleteCategory = async ({
+  deleteCategoryId,
+  deleteAlong,
+  newCategory,
+}) => {
   try {
+    if (deleteAlong) {
+      // Xóa tất cả các sản phẩm và danh mục con liên quan khi deleteAlong là true
+      await productServices.deleteProductsByCategory(deleteCategoryId);
+      console.log("Tất cả sản phẩm đã được xóa.");
+
+      await Subcategories.deleteMany({ categoryId: deleteCategoryId });
+      console.log("Tất cả danh mục con đã được xóa.");
+    } else if (newCategory) {
+      // Nếu deleteAlong là false, cập nhật tất cả sản phẩm và danh mục con với danh mục mới
+      await Subcategories.updateMany(
+        { categoryId: deleteCategoryId },
+        { categoryId: newCategory }
+      );
+      console.log("Danh mục con đã được cập nhật với danh mục mới.");
+
+      await Product.updateMany(
+        { productCategory: deleteCategoryId },
+        { productCategory: newCategory }
+      );
+      console.log("Sản phẩm đã được cập nhật với danh mục mới.");
+    }
+
+    // Xóa danh mục chính
     await Categories.findByIdAndDelete(deleteCategoryId);
+    console.log("Danh mục chính đã được xóa.");
   } catch (err) {
     console.error("Error occurred:", err.message);
     throw new Error(err);

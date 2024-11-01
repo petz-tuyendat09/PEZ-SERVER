@@ -8,5 +8,6 @@ router.get("/booking-by-date", bookingController.getBookingByDate);
 router.get("/booking-userId/", bookingController.getBookingByUserId);
 router.put("/cancel-booking", bookingController.cancelBooking);
 router.post("/review-booking", bookingController.reviewBooking);
+router.get("/get-review", bookingController.getReview);
 
 module.exports = router;

@@ -154,3 +154,24 @@ exports.reviewBooking = async (req, res) => {
       .json({ success: false, message: "Server error", error: error.message });
   }
 };
+
+exports.getReview = async (req, res) => {
+  try {
+    const { rating, ratingSort, sortByServices, page, limit } = req.query;
+
+    const review = await bookingService.getReview({
+      rating,
+      ratingSort,
+      sortByServices,
+      page,
+      limit,
+    });
+
+    return res.status(200).json(review);
+  } catch (error) {
+    console.log("Error in bookingController:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
+  }
+};

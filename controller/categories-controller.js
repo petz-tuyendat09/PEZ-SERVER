@@ -41,11 +41,8 @@ exports.editCategory = async (req, res) => {
       return res.status(400).json({ message: "Tên danh mục đã tồn tại" });
     }
 
-    const result = await categorieServices.editCategory(
-      categoryId,
-      editCategoryName
-    );
-    return res.status(200).json(result);
+    await categorieServices.editCategory(categoryId, editCategoryName);
+    return res.status(200).json({ message: "Sửa danh mục thành công" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -71,9 +68,13 @@ exports.addCategory = async (req, res) => {
 
 exports.deleteCategory = async (req, res) => {
   try {
-    const deleteCategoryId = req.body.deleteCategoryId;
-    const result = await categorieServices.deleteCategory(deleteCategoryId);
-    return res.status(200).json(result);
+    const { deleteCategoryId, deleteAlong, newCategory } = req.body;
+    await categorieServices.deleteCategory({
+      deleteCategoryId,
+      deleteAlong,
+      newCategory,
+    });
+    return res.status(200).json({ message: "Xóa thành công" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

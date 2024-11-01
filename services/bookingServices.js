@@ -290,3 +290,54 @@ exports.handleReview = async ({
     };
   }
 };
+
+// services
+exports.getReview = async ({
+  rating,
+  ratingSort,
+  sortByServices,
+  page,
+  limit,
+}) => {
+  try {
+    // Tạo điều kiện lọc theo rating nếu có
+    let filter = {};
+    if (rating) {
+      filter.rating = rating;
+    }
+
+    // Xây dựng truy vấn sắp xếp
+    let sort = {};
+    if (ratingSort) {
+      sort.rating = ratingSort === "asc" ? 1 : -1; // Sắp xếp rating theo thứ tự tăng dần hoặc giảm dần
+    }
+
+    if (sortByServices) {
+      sort.services = sortByServices === "asc" ? 1 : -1; // Sắp xếp số dịch vụ theo thứ tự tăng dần hoặc giảm dần
+    }
+
+    // Thiết lập phân trang
+    const pageNumber = parseInt(page) || 1;
+    const pageSize = parseInt(limit) || 10;
+    const skip = (pageNumber - 1) * pageSize;
+
+    // Truy vấn dữ liệu từ MongoDB với phân trang
+    const reviews = await Review.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(pageSize)
+      .populate("services");
+
+    // Tổng số lượng đánh giá để tính toán phân trang
+    const totalReviews = await Review.countDocuments(filter);
+
+    return {
+      reviews,
+      totalPages: Math.ceil(totalReviews / pageSize),
+      currentPage: pageNumber,
+    };
+  } catch (error) {
+    console.log("Error in reviewService:", error);
+    throw new Error("Lỗi khi lấy đánh giá");
+  }
+};
