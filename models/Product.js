@@ -61,16 +61,6 @@ const productSchema = new Schema({
     default: null,
     ref: "ProductDetailDescription",
   },
-  productRating: {
-    type: Number,
-    required: false,
-    default: 0,
-  },
-  ratingCount: {
-    type: Number,
-    required: false,
-    default: 0,
-  },
 });
 
 productSchema.index({ productName: 1 });

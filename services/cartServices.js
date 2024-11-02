@@ -149,8 +149,6 @@ exports.adjustQuantity = async (
 exports.removeProductFromCart = async (cartId, productId, productOption) => {
   const cart = await Cart.findById(cartId);
 
-  console.log(cartId);
-
   if (!cart) {
     throw new Error("Cart not found");
   }

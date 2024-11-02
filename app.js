@@ -32,7 +32,8 @@ const servicesRouter = require("./routes/services.routes");
 const bookingRouter = require("./routes/booking.routes");
 const orderRouter = require("./routes/orders.routes");
 const checkoutRouter = require("./routes/checkout.routes");
-const statsRouter = require("./routes/stats.routes")
+const statsOrderRouter = require("./routes/stats.order.routes")
+const statsBookingRouter = require("./routes/stats.booking.routes")
 
 require("dotenv").config({ path: ".env" });
 
@@ -85,6 +86,7 @@ app.use("/api/services", servicesRouter);
 app.use("/api/booking", bookingRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/checkout", checkoutRouter);
-app.use("/api/stats", statsRouter);
+app.use("/api/orderStats", statsOrderRouter);
+app.use("/api/bookingStats", statsBookingRouter);
 
 module.exports = app;

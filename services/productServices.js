@@ -1,6 +1,5 @@
 const Product = require("../models/Product");
 const slugify = require("slugify");
-const mongoose = require("mongoose");
 const { uploadFileToS3, deleteFileFromS3 } = require("../utils/uploadToAWS.js");
 const ProductDetailDescription = require("../models/ProductDetailDescription.js");
 
@@ -27,33 +26,31 @@ exports.queryProducts = async ({
   productBuy,
   limit = 10,
   page = 1,
+  lowStock = false,
+  sortBy,
 } = {}) => {
   try {
     const query = {};
-    let productOrder = 1;
+    let sort = { _id: 1 }; // Default sort order
 
-    // Search by product name (if provided)
+    // Build query conditions
     if (productName) {
       query.productName = new RegExp(productName, "i");
     }
 
-    // Sort by latest products (if requested)
-    if (productStatus === "latest") {
-      productOrder = -1;
-    }
-
-    // Search by sale percentage (if provided)
     if (salePercent) {
-      query.salePercent = { $gte: salePercent };
+      if (salePercent == 0) {
+        query.salePercent = 0;
+      } else {
+        query.salePercent = { $gte: salePercent };
+      }
     }
 
-    // Search by product category (if provided)
     if (productCategory) {
       const categoriesArray = productCategory.split(",").map((id) => id.trim());
       query.productCategory = { $in: categoriesArray };
     }
 
-    // Search by product subcategory (if provided)
     if (productSubCategory) {
       const subCategoriesArray = productSubCategory
         .split(",")
@@ -61,38 +58,105 @@ exports.queryProducts = async ({
       query.productSubCategory = { $in: subCategoriesArray };
     }
 
-    // Search by product slug (if provided)
     if (productSlug) {
       query.productSlug = new RegExp(productSlug, "i");
     }
 
-    // Search by product buy (if provided)
     if (productBuy) {
       query.productBuy = { $gte: productBuy };
+    }
+
+    // Handle sorting
+    if (sortBy) {
+      if (sortBy === "productBuyDesc") {
+        sort = { productBuy: -1 };
+      } else if (sortBy === "productBuyAsc") {
+        sort = { productBuy: 1 };
+      } else if (sortBy === "latest") {
+        sort = { _id: -1 };
+      } else if (sortBy === "oldest") {
+        sort = { _id: 1 };
+      }
+    } else if (productStatus === "latest") {
+      sort = { _id: -1 };
     }
 
     // Calculate the number of documents to skip
     const skip = (page - 1) * limit;
 
-    // Get the total count of documents matching the query
-    const totalDocuments = await Product.countDocuments(query);
+    let products;
+    let totalDocuments;
+    let totalPages;
 
-    // Execute the query with pagination and populate ProductDetailDescription if productSlug is present
-    let queryResult = Product.find(query)
-      .limit(limit)
-      .skip(skip)
-      .sort({ _id: productOrder });
+    if (lowStock) {
+      // Threshold for low stock
+      const lowStockThreshold = 5;
 
-    // Populate ProductDetailDescription only when searching by productSlug
-    if (productSlug) {
-      queryResult = queryResult.populate("productDetailDescription");
+      // Use aggregation pipeline to calculate total quantity
+      const pipeline = [
+        { $match: query },
+        { $unwind: "$productOption" },
+        {
+          $group: {
+            _id: "$_id",
+            productName: { $first: "$productName" },
+            productCategory: { $first: "$productCategory" },
+            productSubCategory: { $first: "$productSubCategory" },
+            productSlug: { $first: "$productSlug" },
+            productOption: { $push: "$productOption" },
+            salePercent: { $first: "$salePercent" },
+            productBuy: { $first: "$productBuy" },
+            productThumbnail: { $first: "$productThumbnail" },
+            productImages: { $first: "$productImages" },
+            totalQuantity: { $sum: "$productOption.productQuantity" },
+          },
+        },
+        { $match: { totalQuantity: { $lt: lowStockThreshold } } },
+        { $sort: sort },
+        { $skip: skip },
+        { $limit: limit },
+      ];
+
+      // Get the total count of documents matching the query and low stock condition
+      const countPipeline = [
+        { $match: query },
+        { $unwind: "$productOption" },
+        {
+          $group: {
+            _id: "$_id",
+            totalQuantity: { $sum: "$productOption.productQuantity" },
+          },
+        },
+        { $match: { totalQuantity: { $lt: lowStockThreshold } } },
+        { $count: "count" },
+      ];
+
+      // Execute the aggregation pipeline
+      const [results, countResults] = await Promise.all([
+        Product.aggregate(pipeline),
+        Product.aggregate(countPipeline),
+      ]);
+
+      products = results;
+      totalDocuments = countResults.length > 0 ? countResults[0].count : 0;
+    } else {
+      // Regular query without low stock filter
+      totalDocuments = await Product.countDocuments(query);
+
+      // Execute the query with pagination and sorting
+      let queryResult = Product.find(query).limit(limit).skip(skip).sort(sort);
+
+      // Populate ProductDetailDescription only when searching by productSlug
+      if (productSlug) {
+        queryResult = queryResult.populate("productDetailDescription");
+      }
+
+      // Execute the query
+      products = await queryResult;
     }
 
-    // Execute the query
-    const products = await queryResult;
-
     // Calculate total pages
-    const totalPages = Math.ceil(totalDocuments / limit);
+    totalPages = Math.ceil(totalDocuments / limit);
 
     // Return the results along with pagination info
     return {
@@ -102,7 +166,7 @@ exports.queryProducts = async ({
     };
   } catch (err) {
     console.error("Error occurred:", err.message);
-    throw err; // It's good practice to re-throw the error after logging it
+    throw err;
   }
 };
 
@@ -300,6 +364,55 @@ exports.deleteProduct = async (productId) => {
     );
   } catch (error) {
     console.error("Error in product deletion service:", error);
+    throw error;
+  }
+};
+
+exports.deleteProductsByCategory = async (categoryId) => {
+  try {
+    // Tìm tất cả sản phẩm có categoryId cần xóa
+    const products = await Product.find({ productCategory: categoryId });
+
+    if (products.length === 0) {
+      console.log("Không có sản phẩm nào để xóa.");
+      return;
+    }
+
+    // Hàm handle xóa ảnh khỏi S3 theo URL
+    const deleteImageFromS3 = async (imageUrl) => {
+      const fileKey = imageUrl.split(".com/")[1]; // Lấy fileKey từ URL
+      await deleteFileFromS3(fileKey);
+    };
+
+    // Duyệt qua từng sản phẩm và xóa
+    for (const product of products) {
+      const detailId = product.productDetailDescription;
+      // Xóa chi tiết mô tả sản phẩm
+      if (detailId) {
+        await ProductDetailDescription.findByIdAndDelete(detailId);
+      }
+
+      // Xóa thumbnail
+      if (product.productThumbnail) {
+        await deleteImageFromS3(product.productThumbnail);
+      }
+
+      // Xóa tất cả ảnh trong productImages
+      if (product.productImages && product.productImages.length > 0) {
+        for (const imageUrl of product.productImages) {
+          await deleteImageFromS3(imageUrl);
+        }
+      }
+
+      // Xóa sản phẩm khỏi cơ sở dữ liệu
+      await Product.deleteOne({ _id: product._id });
+    }
+
+    console.log(
+      `Tất cả sản phẩm thuộc danh mục ID ${categoryId} đã được xóa cùng với hình ảnh.`
+    );
+  } catch (error) {
+    console.error("Error in deleteProductsByCategory service:", error);
     throw error;
   }
 };

@@ -33,6 +33,8 @@ exports.queryProducts = async (req, res) => {
       productBuy: req.query.productBuy,
       page: req.query.page,
       limit: parseInt(req.query.limit, 10) || 20,
+      lowStock: req.query.lowStock === "true", // Convert to boolean
+      sortBy: req.query.sortBy,
     };
 
     const products = await productService.queryProducts(filters);
@@ -46,15 +48,17 @@ exports.queryProductsByCateId = async (req, res) => {
   const { categoryId } = req.query;
 
   if (!categoryId) {
-    return res.status(400).json({ error: 'categoryId is required' });
+    return res.status(400).json({ error: "categoryId is required" });
   }
 
   try {
     const products = await Product.find({ productCategory: categoryId });
     return res.status(200).json(products);
   } catch (err) {
-    console.error(err); 
-    return res.status(500).json({ error: 'Internal Server Error', message: err.message });
+    console.error(err);
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", message: err.message });
   }
 };
 

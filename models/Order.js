@@ -20,7 +20,7 @@ const orderSchema = new Schema(
       type: String,
       required: true,
     },
-    productId: [
+    products: [
       {
         productId: {
           type: ObjectId,
@@ -69,7 +69,8 @@ const orderSchema = new Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "CANCELLED"],
+      enum: ["PENDING", "DELIVERING", "DELIVERED", "CANCELLED"],
+      default: "PENDING",
     },
   },
   { timestamps: true }
