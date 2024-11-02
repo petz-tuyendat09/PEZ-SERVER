@@ -201,7 +201,6 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
       return { success: false, message: "Không tìm thấy User" };
     }
 
-    // Check if the user has enough points to exchange for the voucher
     if (user.userPoint < voucherPoint) {
       return {
         success: false,
@@ -227,6 +226,14 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
     );
 
     if (existingVoucher) {
+      // Check if the user already owns 10 of this voucher
+      if (existingVoucher.quantity >= 10) {
+        return {
+          success: false,
+          message: "Bạn đã sở hữu số lượng tối đa cho voucher này",
+        };
+      }
+
       // If the voucher exists, increase the quantity
       existingVoucher.quantity += 1;
     } else {

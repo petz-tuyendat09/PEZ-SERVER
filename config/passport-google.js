@@ -19,7 +19,6 @@ passport.use(
         const email = profile.emails[0].value;
 
         let user = await User.findOne({ userEmail: email });
-        console.log(user);
 
         if (user) {
           user.googleId = googleId;
