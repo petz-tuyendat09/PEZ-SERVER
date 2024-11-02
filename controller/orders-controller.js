@@ -112,8 +112,6 @@ exports.queryOrders = async (req, res) => {
       orderStatus,
     } = req.query;
 
-    console.log(req.query);
-
     const orders = await orderServices.queryOrders({
       page,
       limit,
