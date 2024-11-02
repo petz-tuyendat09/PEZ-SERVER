@@ -1,4 +1,3 @@
-const Cart = require("../models/Cart");
 const cartServices = require("../services/cartServices");
 
 exports.insertCart = async (req, res) => {
