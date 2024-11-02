@@ -80,12 +80,13 @@ exports.querySubCategoriesByPage = async ({
   }
 };
 
-exports.existingSubCategoryName = async (newSubCategoryName) => {
+exports.existingSubCategoryName = async (newSubCategoryName, newCategoryId) => {
   try {
     const trimmedName = newSubCategoryName.trim().replace(/\s+/g, " ");
 
     const subCategory = await subCategories.findOne({
       subCategoryName: trimmedName,
+      categoryId: newCategoryId,
     });
     return subCategory;
   } catch (err) {
@@ -99,6 +100,8 @@ exports.editSubCategory = async (
   newSubCategoryName,
   newCategoryId
 ) => {
+  console.log("123");
+
   try {
     await subCategories.findByIdAndUpdate(editSubCategoryId, {
       subCategoryName: newSubCategoryName,

@@ -86,7 +86,7 @@ exports.resendOTP = async (req, res) => {
     let result = await authService.resendOTP(email, otp);
 
     if (!result) {
-      return res.status(401).json({ message: "Đã quá thời gian đăng ký" });
+      return res.status(401).json({ message: "Đã quá thời gian gửi lại OTP" });
     }
     return res.status(201).json({ message: "Đã gửi OTP, vui lòng check Mail" });
   } catch (error) {
@@ -206,5 +206,71 @@ exports.loginWithGoogle = async (req, res) => {
       canLogin: false,
       message: "Đã xảy ra lỗi trong quá trình đăng nhập",
     });
+  }
+};
+
+exports.forgotPassord = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Kiểm tra email đã tồn tại chưa
+    const isEmailExists = await authService.isEmailExists(email);
+    if (!isEmailExists) {
+      return res.status(409).json({ message: "Email không tồn tại" });
+    }
+
+    // Tạo OTP và gửi email
+    const otp = await sendOTPUtils.generateOTP();
+    sendOTPUtils.sendOtpEmail(email, otp);
+
+    // Lưu thông tin người dùng tạm thời
+    const result = await authService.saveTempUser({
+      email,
+      otp,
+    });
+    if (result) {
+      return res.status(200).json({ message: "OTP sent to email" });
+    }
+  } catch (error) {
+    console.error("Error in forgotPassord controller:", error);
+    return res.status(500).json({
+      canLogin: false,
+      message: "Đã xảy ra lỗi trong quá trình đăng nhập",
+    });
+  }
+};
+
+exports.verifyOtpForgetPassword = async (req, res) => {
+  const { email, otpCode } = req.body;
+  try {
+    const { success, message } = await authService.verifyOtpForgetPassword({
+      email,
+      otpCode,
+    });
+    if (!success) {
+      return res.status(401).json({ message: message });
+    }
+    return res.status(201).json({ message: message });
+  } catch (error) {
+    console.error("Error in OTP verification:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+  console.log(newPassword);
+  try {
+    const { success, message } = await authService.resetPassword({
+      email,
+      newPassword,
+    });
+    if (!success) {
+      return res.status(401).json({ message: message });
+    }
+    return res.status(201).json({ message: message });
+  } catch (error) {
+    console.error("Error in OTP verification:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
