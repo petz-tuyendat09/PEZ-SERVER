@@ -1,3 +1,5 @@
+const Cart = require("../models/Cart");
+const User = require("../models/User");
 const userServices = require("../services/userServices");
 
 // Get user by ID
@@ -101,11 +103,30 @@ const changeUserRole = async (req, res) => {
   }
 };
 
+const deleteAllByUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const cart = await Cart.findOne({ _id: user.userCart });
+    cart.cartItems = [];
+    await cart.save();
+
+    return res.status(200).json({ success: true, message: 'Cart cleared successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
 module.exports = {
   getUserById,
   getAllUsers,
   updateUserById,
   getVoucherHeld,
+  test,
+  deleteAllByUser
   getAllUsersPaginate,
   changeUserRole,
 };

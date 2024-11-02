@@ -35,13 +35,12 @@ exports.insertOrders = async (req, res) => {
       products,
       orderTotal,
       voucherId,
-      orderDiscount, 
-      userId, 
-      totalAfterDiscount, 
-      paymentMethod, 
-      orderStatus 
+      orderDiscount,
+      userId,
+      totalAfterDiscount,
+      paymentMethod,
+      orderStatus,
     } = req.body;
-
 
     const OrderModel = new Order({
       customerName,
@@ -51,24 +50,41 @@ exports.insertOrders = async (req, res) => {
       products,
       orderTotal,
       voucherId,
-      orderDiscount, 
-      userId, 
-      totalAfterDiscount, 
-      paymentMethod, 
-      orderStatus
+      orderDiscount,
+      userId,
+      totalAfterDiscount,
+      paymentMethod,
+      orderStatus,
     });
 
+    const savedOrder = await OrderModel.save();
+
     const productUpdates = products.map(async (item) => {
-      const product = await Product.findOne({ _id: item.productId, "productOption.name": item.productOption });
-      if (product) {
-        const option = product.productOption.find(option => option.name === item.productOption);
-        if (option && option.productQuantity >= item.productQuantity) {
-          option.productQuantity -= item.productQuantity;
-          await product.save(); 
+      try {
+        const product = await Product.findOne({
+          _id: item.productId,
+          "productOption.name": item.productOption,
+        });
+        if (product) {
+          const option = product.productOption.find(
+            (option) => option.name === item.productOption
+          );
+          if (option && option.productQuantity >= item.productQuantity) {
+            option.productQuantity -= item.productQuantity;
+            await product.save();
+          } else {
+            throw new Error(`Insufficient quantity for product: ${item.productId}`);
+          }
+        } else {
+          throw new Error(`Product not found: ${item.productId}`);
         }
+      } catch (error) {
+        console.error(error);
       }
     });
-    
+
+    await Promise.allSettled(productUpdates);
+
     if (userId) {
       await User.findByIdAndUpdate(
         userId,
@@ -84,8 +100,7 @@ exports.insertOrders = async (req, res) => {
         { new: true }
       );
     }
-    await Promise.all(productUpdates); 
-    const savedOrder = await OrderModel.save();
+
     return res.status(200).json({ success: true, data: savedOrder });
   } catch (error) {
     console.error(error);
