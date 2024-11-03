@@ -62,14 +62,20 @@ const getVoucherHeld = async (req, res) => {
   try {
     const { userId, page, salePercentSort, typeFilter, limit } = req.query;
 
-    const result = await userServices.getVoucherHeld(
-      userId,
-      page,
-      salePercentSort,
-      typeFilter,
-      limit
-    );
-    return res.status(200).json(result);
+    if (!userId) {
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+
+    if (userId) {
+      const result = await userServices.getVoucherHeld(
+        userId,
+        page,
+        salePercentSort,
+        typeFilter,
+        limit
+      );
+      return res.status(200).json(result);
+    }
   } catch (error) {
     console.log("Error in getVoucherHeld - controller:", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -108,17 +114,21 @@ const deleteAllByUser = async (req, res) => {
     const userId = req.params.id;
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
     const cart = await Cart.findOne({ _id: user.userCart });
     cart.cartItems = [];
     await cart.save();
 
-    return res.status(200).json({ success: true, message: 'Cart cleared successfully' });
+    return res
+      .status(200)
+      .json({ success: true, message: "Cart cleared successfully" });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
-}
+};
 
 module.exports = {
   getUserById,

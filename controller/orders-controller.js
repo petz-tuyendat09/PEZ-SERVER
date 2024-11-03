@@ -60,12 +60,17 @@ exports.insertOrders = async (req, res) => {
     const savedOrder = await OrderModel.save();
 
     const productUpdates = products.map(async (item) => {
-      const product = await Product.findOne({ _id: item.productId, "productOption.name": item.productOption });
+      const product = await Product.findOne({
+        _id: item.productId,
+        "productOption.name": item.productOption,
+      });
       if (!product) {
         throw new Error(`Product not found: ${item.productId}`);
       }
 
-      const option = product.productOption.find(option => option.name === item.productOption);
+      const option = product.productOption.find(
+        (option) => option.name === item.productOption
+      );
       if (!option || option.productQuantity < item.productQuantity) {
         throw new Error(`Insufficient quantity for product: ${item.productId}`);
       }
@@ -76,7 +81,7 @@ exports.insertOrders = async (req, res) => {
 
     await Promise.all(productUpdates);
 
-    let newUserPoint = 0; 
+    let newUserPoint = 0;
     if (userId) {
       const user = await User.findByIdAndUpdate(
         userId,
@@ -99,14 +104,16 @@ exports.insertOrders = async (req, res) => {
       }
     }
 
-    return res.status(200).json({ success: true, orderId: savedOrder._id, userPoint: newUserPoint });
+    return res.status(200).json({
+      success: true,
+      orderId: savedOrder._id,
+      userPoint: newUserPoint,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 exports.queryOrders = async (req, res) => {
   try {
