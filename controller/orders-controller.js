@@ -60,33 +60,25 @@ exports.insertOrders = async (req, res) => {
     const savedOrder = await OrderModel.save();
 
     const productUpdates = products.map(async (item) => {
-      try {
-        const product = await Product.findOne({
-          _id: item.productId,
-          "productOption.name": item.productOption,
-        });
-        if (product) {
-          const option = product.productOption.find(
-            (option) => option.name === item.productOption
-          );
-          if (option && option.productQuantity >= item.productQuantity) {
-            option.productQuantity -= item.productQuantity;
-            await product.save();
-          } else {
-            throw new Error(`Insufficient quantity for product: ${item.productId}`);
-          }
-        } else {
-          throw new Error(`Product not found: ${item.productId}`);
-        }
-      } catch (error) {
-        console.error(error);
+      const product = await Product.findOne({ _id: item.productId, "productOption.name": item.productOption });
+      if (!product) {
+        throw new Error(`Product not found: ${item.productId}`);
       }
+
+      const option = product.productOption.find(option => option.name === item.productOption);
+      if (!option || option.productQuantity < item.productQuantity) {
+        throw new Error(`Insufficient quantity for product: ${item.productId}`);
+      }
+
+      option.productQuantity -= item.productQuantity;
+      await product.save();
     });
 
-    await Promise.allSettled(productUpdates);
+    await Promise.all(productUpdates);
 
+    let newUserPoint = 0; 
     if (userId) {
-      await User.findByIdAndUpdate(
+      const user = await User.findByIdAndUpdate(
         userId,
         {
           $push: {
@@ -99,14 +91,21 @@ exports.insertOrders = async (req, res) => {
         },
         { new: true }
       );
+
+      if (user) {
+        newUserPoint = user.userPoint + orderTotal / 100;
+        user.userPoint = newUserPoint;
+        await user.save();
+      }
     }
 
-    return res.status(200).json({ success: true, data: savedOrder });
+    return res.status(200).json({ success: true, orderId: savedOrder._id, userPoint: newUserPoint });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 exports.queryOrders = async (req, res) => {
