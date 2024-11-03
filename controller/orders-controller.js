@@ -7,6 +7,7 @@ exports.getOrderByUserId = async (req, res) => {
     const { userId } = req.query;
     if (userId) {
       const orders = await orderServices.getOrderByUserId(userId);
+
       return res.status(200).json(orders);
     }
   } catch (error) {
@@ -73,7 +74,9 @@ exports.insertOrders = async (req, res) => {
             option.productQuantity -= item.productQuantity;
             await product.save();
           } else {
-            throw new Error(`Insufficient quantity for product: ${item.productId}`);
+            throw new Error(
+              `Insufficient quantity for product: ${item.productId}`
+            );
           }
         } else {
           throw new Error(`Product not found: ${item.productId}`);
@@ -84,7 +87,6 @@ exports.insertOrders = async (req, res) => {
     });
 
     await Promise.allSettled(productUpdates);
-
     if (userId) {
       await User.findByIdAndUpdate(
         userId,
@@ -99,6 +101,11 @@ exports.insertOrders = async (req, res) => {
         },
         { new: true }
       );
+      const user = await User.findById(userId);
+      if (user) {
+        user.userPoint += orderTotal / 100;
+        await user.save();
+      }
     }
 
     return res.status(200).json({ success: true, data: savedOrder });
@@ -107,7 +114,6 @@ exports.insertOrders = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 exports.queryOrders = async (req, res) => {
   try {
