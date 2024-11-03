@@ -125,8 +125,7 @@ module.exports = {
   getAllUsers,
   updateUserById,
   getVoucherHeld,
-  test,
-  deleteAllByUser
+  deleteAllByUser,
   getAllUsersPaginate,
   changeUserRole,
 };
