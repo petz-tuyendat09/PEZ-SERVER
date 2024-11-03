@@ -27,34 +27,34 @@ exports.getOrderByOrderId = async (req, res) => {
 
 exports.insertOrders = async (req, res) => {
   try {
-    const { 
-      customerName, 
-      customerPhone, 
-      customerEmail, 
-      customerAddress, 
+    const {
+      customerName,
+      customerPhone,
+      customerEmail,
+      customerAddress,
       products,
-      orderTotal, 
+      orderTotal,
       voucherId,
-      orderDiscount, 
-      userId, 
-      totalAfterDiscount, 
-      paymentMethod, 
-      orderStatus 
+      orderDiscount,
+      userId,
+      totalAfterDiscount,
+      paymentMethod,
+      orderStatus,
     } = req.body;
 
     const OrderModel = new Order({
-      customerName, 
-      customerPhone, 
-      customerEmail, 
-      customerAddress, 
+      customerName,
+      customerPhone,
+      customerEmail,
+      customerAddress,
       products,
-      orderTotal, 
+      orderTotal,
       voucherId,
-      orderDiscount, 
-      userId, 
-      totalAfterDiscount, 
-      paymentMethod, 
-      orderStatus
+      orderDiscount,
+      userId,
+      totalAfterDiscount,
+      paymentMethod,
+      orderStatus,
     });
 
     const savedOrder = await OrderModel.save();
@@ -120,6 +120,7 @@ exports.queryOrders = async (req, res) => {
       customerName,
       totalPriceSort,
       productQuantitySort,
+      orderStatus,
     } = req.query;
 
     const orders = await orderServices.queryOrders({
@@ -132,6 +133,7 @@ exports.queryOrders = async (req, res) => {
       customerName,
       totalPriceSort,
       productQuantitySort,
+      orderStatus,
     });
 
     res.status(200).json(orders);
@@ -161,6 +163,39 @@ exports.cancelOrder = async (req, res) => {
       .json({ success: true, message: "Order canceled successfully" });
   } catch (error) {
     console.log(error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+exports.editOrderStatus = async (req, res) => {
+  try {
+    const { orderId, newStatus } = req.body;
+    if (!orderId || !newStatus) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID and new status are required.",
+      });
+    }
+
+    const updatedOrder = await orderServices.updateOrderStatus(
+      orderId,
+      newStatus
+    );
+    if (!updatedOrder) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể đổi sang trạng thái trước đó.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order status updated successfully.",
+      data: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Error in editOrderStatus: ", error);
     return res
       .status(500)
       .json({ success: false, message: "Server Error", error: error.message });

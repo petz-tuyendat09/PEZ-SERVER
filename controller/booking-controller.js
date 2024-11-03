@@ -103,7 +103,7 @@ exports.cancelBooking = async (req, res) => {
     const { bookingId } = req.body;
 
     if (!bookingId) {
-      return res.status(400).json({ message: "Booking ID is required" });
+      return res.status(400).json({ message: "Booking Id là bắt buộc" });
     }
 
     const bookingResult = await bookingService.cancelBookingById(bookingId);
@@ -113,10 +113,39 @@ exports.cancelBooking = async (req, res) => {
     }
 
     if (bookingResult.alreadyCanceled) {
-      return res.status(404).json({ message: "Booking is already canceled" });
+      return res.status(404).json({ message: "Lịch đã được hủy" });
     }
 
-    return res.status(200).json({ message: "Booking canceled successfully" });
+    return res
+      .status(200)
+      .json({ message: "Cập nhật trạng thái lịch thành công" });
+  } catch (error) {
+    console.error("Error in cancelBooking:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.doneBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ message: "Booking Id là bắt buco65" });
+    }
+
+    const bookingResult = await bookingService.doneBookingById(bookingId);
+
+    if (!bookingResult.found) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (bookingResult.alreadyCanceled) {
+      return res
+        .status(404)
+        .json({ message: "Lịch đã được cập nhật trạng thái" });
+    }
+
+    return res.status(200).json({ message: "Cập nhật trạng thái thành công" });
   } catch (error) {
     console.error("Error in cancelBooking:", error);
     return res.status(500).json({ message: "Server error" });
@@ -147,6 +176,27 @@ exports.reviewBooking = async (req, res) => {
       data: result.data,
       userPoint: result.userPoint,
     });
+  } catch (error) {
+    console.log("Error in bookingController:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
+  }
+};
+
+exports.getReview = async (req, res) => {
+  try {
+    const { rating, ratingSort, sortByServices, page, limit } = req.query;
+
+    const review = await bookingService.getReview({
+      rating,
+      ratingSort,
+      sortByServices,
+      page,
+      limit,
+    });
+
+    return res.status(200).json(review);
   } catch (error) {
     console.log("Error in bookingController:", error);
     return res
