@@ -14,7 +14,8 @@ const orderSchema = new Schema(
     },
     customerEmail: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     customerAddress: {
       type: String,
