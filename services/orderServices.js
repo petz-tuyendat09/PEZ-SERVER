@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const User = require("../models/User");
 
 exports.queryOrders = async ({
   page,
@@ -161,6 +162,13 @@ exports.updateOrderStatus = async (orderId, newStatus) => {
     (currentStatus === "CANCELLED" && newStatus !== "CANCELLED")
   ) {
     return null; // Invalid transition
+  }
+
+  if (newStatus === "DELIVERED" && order.userId) {
+    const points = Math.floor(order.totalAfterDiscount / 100);
+    await User.findByIdAndUpdate(order.userId, {
+      $inc: { userPoint: points },
+    });
   }
 
   // Update the order status

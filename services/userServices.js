@@ -13,7 +13,7 @@ const bcrypt = require("bcrypt");
 // Get user
 const getUser = async (filter) => {
   try {
-    const user = await User.findOne(filter);
+    const user = await User.findOne(filter).populate("userCart");
     if (!user) {
       return { success: false, message: "User not found" };
     }

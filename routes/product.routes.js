@@ -17,8 +17,8 @@ router.post(
 );
 router.get("/trending", productController.getTrendingProducts);
 router.get("/by-cat-id", productController.queryProductsByCateId);
-
 router.delete("/delete-product", productController.deleteProduct);
+router.post("/lowstock-nofi", productController.deleteProduct);
 
 router.put(
   "/edit-product",

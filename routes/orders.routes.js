@@ -9,6 +9,4 @@ router.post("/cancel-order", orderController.cancelOrder);
 router.get("/order-id/", orderController.getOrderByOrderId);
 router.put("/edit-order-status", orderController.editOrderStatus);
 
-
 module.exports = router;
-

@@ -6,9 +6,13 @@ const userServices = require("../services/userServices");
 const getUserById = async (req, res) => {
   const userId = req.params.id;
   const result = await userServices.getUser({ _id: userId });
+  const user = { ...result.data._doc };
+  delete user.password;
+  delete user.userOrders;
+  delete user.userShift;
 
   if (result.success) {
-    res.status(200).json(result.data);
+    res.status(200).json(user);
   } else {
     res.status(404).json({ message: result.message });
   }
@@ -130,6 +134,34 @@ const deleteAllByUser = async (req, res) => {
   }
 };
 
+const changeUserShift = async (req, res) => {
+  try {
+    const { userId, shifts } = req.body; // Nhận userId và ca làm việc từ client
+
+    if (!userId || !Array.isArray(shifts) || shifts.length === 0) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { userShift: shifts },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
+
+    res.status(200).json({
+      message: "Cập nhật ca làm việc thành công",
+      userShift: updatedUser.userShift,
+    });
+  } catch (error) {
+    console.error("Error in changeUserShift:", error);
+    res.status(500).json({ message: "Đã xảy ra lỗi khi cập nhật ca làm việc" });
+  }
+};
+
 module.exports = {
   getUserById,
   getAllUsers,
@@ -138,4 +170,5 @@ module.exports = {
   deleteAllByUser,
   getAllUsersPaginate,
   changeUserRole,
+  changeUserShift,
 };
