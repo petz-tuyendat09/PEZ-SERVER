@@ -70,7 +70,14 @@ const orderSchema = new Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "DELIVERED", "CANCELLED"],
+      enum: [
+        "PENDING",
+        "PAID",
+        "FAILED",
+        "DELIVERING",
+        "DELIVERED",
+        "CANCELLED",
+      ],
       default: "PENDING",
     },
   },

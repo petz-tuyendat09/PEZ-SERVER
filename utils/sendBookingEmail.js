@@ -2,7 +2,7 @@ const nodemailer = require("nodemailer");
 
 exports.sendBookingEmail = async (email, bookingDetail) => {
   const transporter = nodemailer.createTransport({
-    service: "Gmail", // or your preferred email provider
+    service: "Gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,

@@ -77,12 +77,23 @@ const userSchema = new Schema({
       },
     },
   ],
-
   userCart: {
     type: ObjectId,
     ref: "Cart",
     required: true,
   },
+  userShift: [
+    {
+      startTime: {
+        type: String,
+        required: false,
+      },
+      endTime: {
+        type: String,
+        required: false,
+      },
+    },
+  ],
 });
 
 module.exports = mongoose.model("User", userSchema);
