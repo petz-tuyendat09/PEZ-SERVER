@@ -147,3 +147,31 @@ exports.editProduct = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.lowstockNofi = async (req, res) => {
+  try {
+    const { productId } = req.body;
+    productService.lowstockNofi({ productId });
+
+    res.status(200).json({ message: "Thông báo thành công" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error" });
+  }
+};
+
+exports.getReview = async (req, res) => {
+  try {
+    const { ratingStatus, sort, page = 1, limit = 10 } = req.query;
+    const reviewsData = await productService.queryReviews({
+      ratingStatus,
+      sort,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    });
+    res.status(200).json(reviewsData);
+  } catch (error) {
+    console.log("Error in getReview:", error);
+    res.status(500).json({ message: "Error retrieving reviews" });
+  }
+};

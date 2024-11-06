@@ -2,6 +2,9 @@ const Product = require("../models/Product");
 const slugify = require("slugify");
 const { uploadFileToS3, deleteFileFromS3 } = require("../utils/uploadToAWS.js");
 const ProductDetailDescription = require("../models/ProductDetailDescription.js");
+const { sendLowstockEmail } = require("../utils/sendLowstockEmail.js");
+const User = require("../models/User.js");
+const ReviewProducts = require("../models/ReviewProducts.js");
 
 // === Query Product ===
 /**
@@ -89,10 +92,8 @@ exports.queryProducts = async ({
     let totalPages;
 
     if (lowStock) {
-      // Threshold for low stock
       const lowStockThreshold = 5;
 
-      // Use aggregation pipeline to calculate total quantity
       const pipeline = [
         { $match: query },
         { $unwind: "$productOption" },
@@ -117,7 +118,6 @@ exports.queryProducts = async ({
         { $limit: limit },
       ];
 
-      // Get the total count of documents matching the query and low stock condition
       const countPipeline = [
         { $match: query },
         { $unwind: "$productOption" },
@@ -131,7 +131,6 @@ exports.queryProducts = async ({
         { $count: "count" },
       ];
 
-      // Execute the aggregation pipeline
       const [results, countResults] = await Promise.all([
         Product.aggregate(pipeline),
         Product.aggregate(countPipeline),
@@ -140,25 +139,19 @@ exports.queryProducts = async ({
       products = results;
       totalDocuments = countResults.length > 0 ? countResults[0].count : 0;
     } else {
-      // Regular query without low stock filter
       totalDocuments = await Product.countDocuments(query);
 
-      // Execute the query with pagination and sorting
       let queryResult = Product.find(query).limit(limit).skip(skip).sort(sort);
 
-      // Populate ProductDetailDescription only when searching by productSlug
       if (productSlug) {
         queryResult = queryResult.populate("productDetailDescription");
       }
 
-      // Execute the query
       products = await queryResult;
     }
 
-    // Calculate total pages
     totalPages = Math.ceil(totalDocuments / limit);
 
-    // Return the results along with pagination info
     return {
       products,
       totalPages,
@@ -561,5 +554,80 @@ exports.editProduct = async ({
     return { success, message };
   } catch (error) {
     console.log(error);
+  }
+};
+
+exports.lowstockNofi = async ({ productId }) => {
+  try {
+    const product = await Product.findById(productId).populate("productOption");
+
+    if (!product) {
+      console.log("Không tìm thấy sản phẩm với ID đã cho");
+    }
+
+    const managers = await User.find(
+      { userRole: "manager" },
+      "userEmail displayName"
+    );
+
+    if (managers.length === 0) {
+      console.log("Không tìm thấy user no với vai trò quản lý");
+    }
+
+    const productInfo = {
+      productName: product.productName,
+      productOption: product.productOption.map((option) => `${option.name}`),
+      productQuantity: product.productOption.reduce(
+        (sum, option) => sum + option.productQuantity,
+        0
+      ),
+      productImage: product.productThumbnail,
+    };
+
+    for (const manager of managers) {
+      await sendLowstockEmail(manager.userEmail, [productInfo]);
+    }
+
+    console.log("Thông báo low stock đã được gửi thành công");
+  } catch (error) {
+    console.log("Lỗi xảy ra:", error);
+    throw error;
+  }
+};
+
+exports.queryReviews = async ({ ratingStatus, sort, page = 1, limit = 10 }) => {
+  try {
+    const filter = {};
+    if (ratingStatus === "yes") {
+      filter.rating = { $ne: null }; // rating khác null
+    } else if (ratingStatus === "no") {
+      filter.rating = null; // rating bằng null
+    }
+
+    const sortOptions = { createdAt: -1 };
+    if (sort === "asc") {
+      sortOptions.rating = 1;
+    } else if (sort === "desc") {
+      sortOptions.rating = -1;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const reviews = await ReviewProducts.find(filter)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .populate("userId", "userEmail");
+
+    const totalReviews = await ReviewProducts.countDocuments(filter);
+
+    return {
+      reviews,
+      page,
+      totalPages: Math.ceil(totalReviews / limit),
+    };
+  } catch (error) {
+    console.error("Error in queryReviews:", error);
+    throw error;
   }
 };
