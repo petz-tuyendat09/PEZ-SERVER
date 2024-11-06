@@ -53,9 +53,6 @@ exports.sendNewOrderEmail = async () => {
                   <p style="font-size: 64px; color: black; margin: 0;">PETZ</p>
                 </div>
                 <div style="margin-top: 16px;">
-                  <p style="margin: 0;">Xin chào ${
-                    user.displayName || "Khách hàng"
-                  }</p>
                   <p style="margin-top: 16px; margin-bottom: 16px;">Xin chào seller, bạn có đơn hàng mới trong ca làm hiện tại.</p>
                   <a
                     href="facebook.com"

@@ -196,8 +196,12 @@ exports.authenticateUser = async (loginkey, password) => {
     message = "Tài khoản không tồn tại";
     return { success, message };
   }
+  let isPasswordValid;
 
-  const isPasswordValid = await bcrypt.compare(password, existingUser.password);
+  if (password) {
+    isPasswordValid = await bcrypt.compare(password, existingUser.password);
+  }
+
   if (!isPasswordValid) {
     success = false;
     message = "Sai mật khẩu";

@@ -32,6 +32,10 @@ const orderSchema = new Schema(
           type: Number,
           required: true,
         },
+        productName: {
+          type: String,
+          required: true,
+        },
         productOption: {
           type: String,
           required: true,

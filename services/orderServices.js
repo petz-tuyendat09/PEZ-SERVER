@@ -1,5 +1,8 @@
 const Order = require("../models/Order");
 const User = require("../models/User");
+const ReviewProducts = require("../models/ReviewProducts");
+const { sendDeliveringEmail } = require("../utils/sendDeliveringEmail");
+const { sendDeliveredEmail } = require("../utils/sendDeliveredEmail");
 
 exports.queryOrders = async ({
   page,
@@ -48,7 +51,6 @@ exports.queryOrders = async ({
     sortOption.productCount = productQuantitySort === "asc" ? 1 : -1;
   }
 
-  // Pagination and execution of query with a pipeline to calculate productCount
   const orders = await Order.aggregate([
     {
       $addFields: {
@@ -56,12 +58,11 @@ exports.queryOrders = async ({
       },
     },
     { $match: query },
-    { $sort: sortOption },
+    { $sort: { _id: -1, ...sortOption } },
     { $skip: (parseInt(page) - 1) * parseInt(limit) },
     { $limit: parseInt(limit) },
   ]);
 
-  // Count total documents matching the query without pagination
   const totalDocuments = await Order.countDocuments(query);
 
   return {
@@ -145,6 +146,36 @@ exports.cancelOrder = async (orderId) => {
   }
 };
 
+async function createReviewIfNotExists(productId, productName, userId) {
+  let existingReview = await ReviewProducts.findOne({
+    userId,
+    "products.productId": productId,
+  });
+
+  if (existingReview) {
+    console.log("Review đã tồn tại cho sản phẩm này, không cần tạo mới.");
+    return null;
+  }
+
+  existingReview = await ReviewProducts.findOne({ userId });
+  if (existingReview) {
+    existingReview.products.push({ productId, productName });
+    await existingReview.save();
+    console.log("Sản phẩm mới đã được thêm vào review hiện có.");
+    return existingReview;
+  }
+
+  const newReview = new ReviewProducts({
+    userId,
+    rating: null,
+    products: [{ productId, productName }],
+  });
+
+  await newReview.save();
+  console.log("Review mới đã được tạo.");
+  return newReview;
+}
+
 exports.updateOrderStatus = async (orderId, newStatus) => {
   const order = await Order.findById(orderId);
 
@@ -164,11 +195,24 @@ exports.updateOrderStatus = async (orderId, newStatus) => {
     return null; // Invalid transition
   }
 
+  if (newStatus === "DELIVERING") {
+    sendDeliveringEmail(order);
+  }
+
   if (newStatus === "DELIVERED" && order.userId) {
     const points = Math.floor(order.totalAfterDiscount / 100);
     await User.findByIdAndUpdate(order.userId, {
       $inc: { userPoint: points },
     });
+
+    for (const product of order.products) {
+      await createReviewIfNotExists(
+        product.productId,
+        product.productName,
+        order.userId
+      );
+    }
+    sendDeliveredEmail(order);
   }
 
   // Update the order status
