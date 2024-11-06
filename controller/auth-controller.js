@@ -127,6 +127,8 @@ exports.login = async (req, res) => {
 
     const user = { ...existingUser._doc };
     delete user.password;
+    delete user.userOrders;
+    delete user.userShift;
 
     return res
       .status(200)

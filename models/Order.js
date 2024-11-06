@@ -14,7 +14,8 @@ const orderSchema = new Schema(
     },
     customerEmail: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     customerAddress: {
       type: String,
@@ -69,7 +70,14 @@ const orderSchema = new Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "DELIVERED", "CANCELLED"],
+      enum: [
+        "PENDING",
+        "PAID",
+        "FAILED",
+        "DELIVERING",
+        "DELIVERED",
+        "CANCELLED",
+      ],
       default: "PENDING",
     },
   },

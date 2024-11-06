@@ -13,7 +13,7 @@ const bcrypt = require("bcrypt");
 // Get user
 const getUser = async (filter) => {
   try {
-    const user = await User.findOne(filter);
+    const user = await User.findOne(filter).populate("userCart");
     if (!user) {
       return { success: false, message: "User not found" };
     }
@@ -121,6 +121,10 @@ const getVoucherHeld = async (
   voucherId
 ) => {
   try {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
     const currentPage = parseInt(page);
     const itemsPerPage = parseInt(limit);
 
@@ -140,7 +144,7 @@ const getVoucherHeld = async (
       query.voucherType = new RegExp(typeFilter, "i");
     }
 
-    if (voucherId) {
+    if (voucherId && mongoose.Types.ObjectId.isValid(voucherId)) {
       query._id = voucherId;
     }
 

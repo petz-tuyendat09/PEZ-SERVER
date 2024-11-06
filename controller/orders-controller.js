@@ -2,6 +2,11 @@ const Order = require("../models/Order");
 const Product = require("../models/Product");
 const orderServices = require("../services/orderServices");
 const User = require("../models/User");
+const UserServices = require("../services/userServices");
+const Cart = require("../models/Cart");
+const { sendBookingEmail } = require("../utils/sendOrderEmail");
+const { sendNewOrderEmail } = require("../utils/sendNewOrderEmail");
+
 exports.getOrderByUserId = async (req, res) => {
   try {
     const { userId } = req.query;
@@ -58,14 +63,22 @@ exports.insertOrders = async (req, res) => {
     });
 
     const savedOrder = await OrderModel.save();
+    sendBookingEmail(customerEmail, savedOrder, products);
+    sendNewOrderEmail();
 
+    // Cập nhật số lượng sản phẩm
     const productUpdates = products.map(async (item) => {
-      const product = await Product.findOne({ _id: item.productId, "productOption.name": item.productOption });
+      const product = await Product.findOne({
+        _id: item.productId,
+        "productOption.name": item.productOption,
+      });
       if (!product) {
         throw new Error(`Product not found: ${item.productId}`);
       }
 
-      const option = product.productOption.find(option => option.name === item.productOption);
+      const option = product.productOption.find(
+        (option) => option.name === item.productOption
+      );
       if (!option || option.productQuantity < item.productQuantity) {
         throw new Error(`Insufficient quantity for product: ${item.productId}`);
       }
@@ -76,8 +89,8 @@ exports.insertOrders = async (req, res) => {
 
     await Promise.all(productUpdates);
 
-    let newUserPoint = 0; 
     if (userId) {
+      // Cập nhật thông tin đơn hàng cho người dùng
       const user = await User.findByIdAndUpdate(
         userId,
         {
@@ -92,21 +105,23 @@ exports.insertOrders = async (req, res) => {
         { new: true }
       );
 
-      if (user) {
-        newUserPoint = user.userPoint + orderTotal / 100;
-        user.userPoint = newUserPoint;
-        await user.save();
+      // Giảm số lượng voucher của người dùng
+      if (voucherId) {
+        await UserServices.decreaseUserVoucher(user._id, savedOrder.voucherId);
       }
+      // Reset cartItems về mảng rỗng
+      await Cart.findByIdAndUpdate(user.userCart, { cartItems: [] });
     }
 
-    return res.status(200).json({ success: true, orderId: savedOrder._id, userPoint: newUserPoint });
+    return res.status(200).json({
+      success: true,
+      orderId: savedOrder._id,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 exports.queryOrders = async (req, res) => {
   try {
