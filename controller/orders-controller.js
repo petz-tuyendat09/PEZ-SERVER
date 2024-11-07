@@ -166,3 +166,24 @@ exports.cancelOrder = async (req, res) => {
       .json({ success: false, message: "Server Error", error: error.message });
   }
 };
+
+exports.updatePaymentStatus = async (req, res) => {
+  try {
+    const { orderId, paymentStatus } = req.body;
+
+    const order = await Order.findById(orderId);
+    
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    order.paymentStatus = paymentStatus;
+    await order.save();
+
+    return res.status(200).json({ success: true, message: "Payment status updated successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+}
+

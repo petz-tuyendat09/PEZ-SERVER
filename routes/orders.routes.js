@@ -8,5 +8,6 @@ router.post("/", orderController.insertOrders);
 router.post("/cancel-order", orderController.cancelOrder);
 router.get("/order-id/", orderController.getOrderByOrderId);
 router.post("/delivering-order/", orderController.getOrderByOrderId);
-module.exports = router;
+router.put('/payment-status', orderController.updatePaymentStatus);
 
+module.exports = router;
