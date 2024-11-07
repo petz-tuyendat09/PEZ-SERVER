@@ -147,9 +147,9 @@ exports.cancelOrder = async (orderId) => {
 };
 
 async function createReviewIfNotExists(productId, productName, userId) {
-  let existingReview = await ReviewProducts.findOne({
+  const existingReview = await ReviewProducts.findOne({
     userId,
-    "products.productId": productId,
+    productId,
   });
 
   if (existingReview) {
@@ -157,18 +157,11 @@ async function createReviewIfNotExists(productId, productName, userId) {
     return null;
   }
 
-  existingReview = await ReviewProducts.findOne({ userId });
-  if (existingReview) {
-    existingReview.products.push({ productId, productName });
-    await existingReview.save();
-    console.log("Sản phẩm mới đã được thêm vào review hiện có.");
-    return existingReview;
-  }
-
   const newReview = new ReviewProducts({
     userId,
+    productId,
+    productName,
     rating: null,
-    products: [{ productId, productName }],
   });
 
   await newReview.save();

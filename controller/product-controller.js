@@ -162,8 +162,9 @@ exports.lowstockNofi = async (req, res) => {
 
 exports.getReview = async (req, res) => {
   try {
-    const { ratingStatus, sort, page = 1, limit = 10 } = req.query;
+    const { userId, ratingStatus, sort, page = 1, limit = 10 } = req.query;
     const reviewsData = await productService.queryReviews({
+      userId,
       ratingStatus,
       sort,
       page: parseInt(page),

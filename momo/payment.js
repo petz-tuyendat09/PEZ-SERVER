@@ -22,7 +22,7 @@ async function handler(req, res) {
   const orderInfo = "Thanh toán đơn hàng";
   const redirectUrl = "http://localhost:3000/cart/place-order/payment-status";
   const ipnUrl =
-    "https://3127-2405-4803-c85e-810-85c-9f8a-aeba-c606.ngrok-free.app/api/payment/callback-payment";
+    "https://e0e8-2405-4803-c87e-ad30-597f-ed79-dde2-d12f.ngrok-free.app/api/payment/callback-payment";
   const requestId = orderId;
   const requestType = "captureWallet";
   const extraData = "";

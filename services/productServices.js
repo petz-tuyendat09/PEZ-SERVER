@@ -595,7 +595,13 @@ exports.lowstockNofi = async ({ productId }) => {
   }
 };
 
-exports.queryReviews = async ({ ratingStatus, sort, page = 1, limit = 10 }) => {
+exports.queryReviews = async ({
+  userId,
+  ratingStatus,
+  sort,
+  page = 1,
+  limit = 10,
+}) => {
   try {
     const filter = {};
     if (ratingStatus === "yes") {
@@ -609,6 +615,10 @@ exports.queryReviews = async ({ ratingStatus, sort, page = 1, limit = 10 }) => {
       sortOptions.rating = 1;
     } else if (sort === "desc") {
       sortOptions.rating = -1;
+    }
+
+    if (userId) {
+      filter.userId = userId;
     }
 
     const skip = (page - 1) * limit;

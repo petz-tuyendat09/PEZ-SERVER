@@ -15,19 +15,15 @@ const productReviewSchema = new Schema(
       min: 1,
       max: 5,
     },
-    products: [
-      {
-        productId: {
-          type: ObjectId,
-          required: true,
-          ref: "Products",
-        },
-        productName: {
-          type: String,
-          required: true,
-        },
-      },
-    ],
+    productId: {
+      type: ObjectId,
+      required: true,
+      ref: "Products",
+    },
+    productName: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
