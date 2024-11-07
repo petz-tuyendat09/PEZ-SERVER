@@ -1,8 +1,10 @@
 const Product = require("../models/Product");
 const slugify = require("slugify");
-const mongoose = require("mongoose");
 const { uploadFileToS3, deleteFileFromS3 } = require("../utils/uploadToAWS.js");
 const ProductDetailDescription = require("../models/ProductDetailDescription.js");
+const { sendLowstockEmail } = require("../utils/sendLowstockEmail.js");
+const User = require("../models/User.js");
+const ReviewProducts = require("../models/ReviewProducts.js");
 
 // === Query Product ===
 /**
@@ -27,33 +29,31 @@ exports.queryProducts = async ({
   productBuy,
   limit = 10,
   page = 1,
+  lowStock = false,
+  sortBy,
 } = {}) => {
   try {
     const query = {};
-    let productOrder = 1;
+    let sort = { _id: 1 }; // Default sort order
 
-    // Search by product name (if provided)
+    // Build query conditions
     if (productName) {
       query.productName = new RegExp(productName, "i");
     }
 
-    // Sort by latest products (if requested)
-    if (productStatus === "latest") {
-      productOrder = -1;
-    }
-
-    // Search by sale percentage (if provided)
     if (salePercent) {
-      query.salePercent = { $gte: salePercent };
+      if (salePercent == 0) {
+        query.salePercent = 0;
+      } else {
+        query.salePercent = { $gte: salePercent };
+      }
     }
 
-    // Search by product category (if provided)
     if (productCategory) {
       const categoriesArray = productCategory.split(",").map((id) => id.trim());
       query.productCategory = { $in: categoriesArray };
     }
 
-    // Search by product subcategory (if provided)
     if (productSubCategory) {
       const subCategoriesArray = productSubCategory
         .split(",")
@@ -61,40 +61,97 @@ exports.queryProducts = async ({
       query.productSubCategory = { $in: subCategoriesArray };
     }
 
-    // Search by product slug (if provided)
     if (productSlug) {
       query.productSlug = new RegExp(productSlug, "i");
     }
 
-    // Search by product buy (if provided)
     if (productBuy) {
       query.productBuy = { $gte: productBuy };
+    }
+
+    // Handle sorting
+    if (sortBy) {
+      if (sortBy === "productBuyDesc") {
+        sort = { productBuy: -1 };
+      } else if (sortBy === "productBuyAsc") {
+        sort = { productBuy: 1 };
+      } else if (sortBy === "latest") {
+        sort = { _id: -1 };
+      } else if (sortBy === "oldest") {
+        sort = { _id: 1 };
+      }
+    } else if (productStatus === "latest") {
+      sort = { _id: -1 };
     }
 
     // Calculate the number of documents to skip
     const skip = (page - 1) * limit;
 
-    // Get the total count of documents matching the query
-    const totalDocuments = await Product.countDocuments(query);
+    let products;
+    let totalDocuments;
+    let totalPages;
 
-    // Execute the query with pagination and populate ProductDetailDescription if productSlug is present
-    let queryResult = Product.find(query)
-      .limit(limit)
-      .skip(skip)
-      .sort({ _id: productOrder });
+    if (lowStock) {
+      const lowStockThreshold = 5;
 
-    // Populate ProductDetailDescription only when searching by productSlug
-    if (productSlug) {
-      queryResult = queryResult.populate("productDetailDescription");
+      const pipeline = [
+        { $match: query },
+        { $unwind: "$productOption" },
+        {
+          $group: {
+            _id: "$_id",
+            productName: { $first: "$productName" },
+            productCategory: { $first: "$productCategory" },
+            productSubCategory: { $first: "$productSubCategory" },
+            productSlug: { $first: "$productSlug" },
+            productOption: { $push: "$productOption" },
+            salePercent: { $first: "$salePercent" },
+            productBuy: { $first: "$productBuy" },
+            productThumbnail: { $first: "$productThumbnail" },
+            productImages: { $first: "$productImages" },
+            totalQuantity: { $sum: "$productOption.productQuantity" },
+          },
+        },
+        { $match: { totalQuantity: { $lt: lowStockThreshold } } },
+        { $sort: sort },
+        { $skip: skip },
+        { $limit: limit },
+      ];
+
+      const countPipeline = [
+        { $match: query },
+        { $unwind: "$productOption" },
+        {
+          $group: {
+            _id: "$_id",
+            totalQuantity: { $sum: "$productOption.productQuantity" },
+          },
+        },
+        { $match: { totalQuantity: { $lt: lowStockThreshold } } },
+        { $count: "count" },
+      ];
+
+      const [results, countResults] = await Promise.all([
+        Product.aggregate(pipeline),
+        Product.aggregate(countPipeline),
+      ]);
+
+      products = results;
+      totalDocuments = countResults.length > 0 ? countResults[0].count : 0;
+    } else {
+      totalDocuments = await Product.countDocuments(query);
+
+      let queryResult = Product.find(query).limit(limit).skip(skip).sort(sort);
+
+      if (productSlug) {
+        queryResult = queryResult.populate("productDetailDescription");
+      }
+
+      products = await queryResult;
     }
 
-    // Execute the query
-    const products = await queryResult;
+    totalPages = Math.ceil(totalDocuments / limit);
 
-    // Calculate total pages
-    const totalPages = Math.ceil(totalDocuments / limit);
-
-    // Return the results along with pagination info
     return {
       products,
       totalPages,
@@ -102,7 +159,7 @@ exports.queryProducts = async ({
     };
   } catch (err) {
     console.error("Error occurred:", err.message);
-    throw err; // It's good practice to re-throw the error after logging it
+    throw err;
   }
 };
 
@@ -304,6 +361,55 @@ exports.deleteProduct = async (productId) => {
   }
 };
 
+exports.deleteProductsByCategory = async (categoryId) => {
+  try {
+    // Tìm tất cả sản phẩm có categoryId cần xóa
+    const products = await Product.find({ productCategory: categoryId });
+
+    if (products.length === 0) {
+      console.log("Không có sản phẩm nào để xóa.");
+      return;
+    }
+
+    // Hàm handle xóa ảnh khỏi S3 theo URL
+    const deleteImageFromS3 = async (imageUrl) => {
+      const fileKey = imageUrl.split(".com/")[1]; // Lấy fileKey từ URL
+      await deleteFileFromS3(fileKey);
+    };
+
+    // Duyệt qua từng sản phẩm và xóa
+    for (const product of products) {
+      const detailId = product.productDetailDescription;
+      // Xóa chi tiết mô tả sản phẩm
+      if (detailId) {
+        await ProductDetailDescription.findByIdAndDelete(detailId);
+      }
+
+      // Xóa thumbnail
+      if (product.productThumbnail) {
+        await deleteImageFromS3(product.productThumbnail);
+      }
+
+      // Xóa tất cả ảnh trong productImages
+      if (product.productImages && product.productImages.length > 0) {
+        for (const imageUrl of product.productImages) {
+          await deleteImageFromS3(imageUrl);
+        }
+      }
+
+      // Xóa sản phẩm khỏi cơ sở dữ liệu
+      await Product.deleteOne({ _id: product._id });
+    }
+
+    console.log(
+      `Tất cả sản phẩm thuộc danh mục ID ${categoryId} đã được xóa cùng với hình ảnh.`
+    );
+  } catch (error) {
+    console.error("Error in deleteProductsByCategory service:", error);
+    throw error;
+  }
+};
+
 /**
  * Chỉnh sửa thông tin sản phẩm trong cơ sở dữ liệu.
  *
@@ -448,5 +554,80 @@ exports.editProduct = async ({
     return { success, message };
   } catch (error) {
     console.log(error);
+  }
+};
+
+exports.lowstockNofi = async ({ productId }) => {
+  try {
+    const product = await Product.findById(productId).populate("productOption");
+
+    if (!product) {
+      console.log("Không tìm thấy sản phẩm với ID đã cho");
+    }
+
+    const managers = await User.find(
+      { userRole: "manager" },
+      "userEmail displayName"
+    );
+
+    if (managers.length === 0) {
+      console.log("Không tìm thấy user no với vai trò quản lý");
+    }
+
+    const productInfo = {
+      productName: product.productName,
+      productOption: product.productOption.map((option) => `${option.name}`),
+      productQuantity: product.productOption.reduce(
+        (sum, option) => sum + option.productQuantity,
+        0
+      ),
+      productImage: product.productThumbnail,
+    };
+
+    for (const manager of managers) {
+      await sendLowstockEmail(manager.userEmail, [productInfo]);
+    }
+
+    console.log("Thông báo low stock đã được gửi thành công");
+  } catch (error) {
+    console.log("Lỗi xảy ra:", error);
+    throw error;
+  }
+};
+
+exports.queryReviews = async ({ ratingStatus, sort, page = 1, limit = 10 }) => {
+  try {
+    const filter = {};
+    if (ratingStatus === "yes") {
+      filter.rating = { $ne: null }; // rating khác null
+    } else if (ratingStatus === "no") {
+      filter.rating = null; // rating bằng null
+    }
+
+    const sortOptions = { createdAt: -1 };
+    if (sort === "asc") {
+      sortOptions.rating = 1;
+    } else if (sort === "desc") {
+      sortOptions.rating = -1;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const reviews = await ReviewProducts.find(filter)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .populate("userId", "userEmail");
+
+    const totalReviews = await ReviewProducts.countDocuments(filter);
+
+    return {
+      reviews,
+      page,
+      totalPages: Math.ceil(totalReviews / limit),
+    };
+  } catch (error) {
+    console.error("Error in queryReviews:", error);
+    throw error;
   }
 };

@@ -13,7 +13,7 @@ const bcrypt = require("bcrypt");
 // Get user
 const getUser = async (filter) => {
   try {
-    const user = await User.findOne(filter);
+    const user = await User.findOne(filter).populate("userCart");
     if (!user) {
       return { success: false, message: "User not found" };
     }
@@ -33,6 +33,40 @@ const getAllUsers = async () => {
   }
 };
 
+const getAllUsersPaginate = async (page = 1, limit = 10, filters = {}) => {
+  try {
+    // Tính toán số lượng tài liệu cần bỏ qua
+    const skip = (page - 1) * limit;
+
+    // Tạo điều kiện tìm kiếm dựa trên filters
+    const query = {};
+    if (filters.userRole) {
+      query.userRole = filters.userRole;
+    }
+    if (filters.username) {
+      query.username = { $regex: filters.username, $options: "i" }; // Tìm kiếm không phân biệt chữ hoa chữ thường
+    }
+    if (filters.userEmail) {
+      query.userEmail = { $regex: filters.userEmail, $options: "i" }; // Tìm kiếm không phân biệt chữ hoa chữ thường
+    }
+
+    // Lấy danh sách người dùng với điều kiện và phân trang
+    const users = await User.find(query).skip(skip).limit(limit);
+
+    // Đếm tổng số lượng người dùng phù hợp với điều kiện
+    const totalUsers = await User.countDocuments(query);
+
+    return {
+      success: true,
+      data: users,
+      currentPage: page,
+      totalPages: Math.ceil(totalUsers / limit),
+    };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
+
 // Update User Information
 const updateUser = async (userId, updateData) => {
   try {
@@ -45,18 +79,13 @@ const updateUser = async (userId, updateData) => {
       userAddress,
     } = updateData;
 
-    console.log(newPassword);
     // Check if the password is being updated
     if (newPassword) {
       // Generate a salt and hash the password
-      console.log(newPassword);
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
-      console.log(hashedPassword);
       newPassword = hashedPassword; // Replace the plain text password with the hashed one
     }
-
-    console.log(userAddress);
 
     // Assuming User is a Mongoose model
     const updatedUser = await User.findByIdAndUpdate(
@@ -92,6 +121,10 @@ const getVoucherHeld = async (
   voucherId
 ) => {
   try {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
     const currentPage = parseInt(page);
     const itemsPerPage = parseInt(limit);
 
@@ -110,9 +143,8 @@ const getVoucherHeld = async (
     if (typeFilter) {
       query.voucherType = new RegExp(typeFilter, "i");
     }
-    console.log(query);
 
-    if (voucherId) {
+    if (voucherId && mongoose.Types.ObjectId.isValid(voucherId)) {
       query._id = voucherId;
     }
 
@@ -190,10 +222,34 @@ const decreaseUserVoucher = async (userId, voucherId) => {
   }
 };
 
+const changeUserRole = async (userId, newRole) => {
+  try {
+    // Kiểm tra nếu role mới không nằm trong danh sách role hợp lệ
+    const validRoles = ["admin", "user", "spa", "manager", "seller"];
+    if (!validRoles.includes(newRole)) {
+      throw new Error("Role không hợp lệ.");
+    }
+
+    // Tìm user và cập nhật role
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { userRole: newRole },
+      { new: true, runValidators: true }
+    );
+
+    return updatedUser;
+  } catch (error) {
+    console.error("Error in userService // changeUserRole:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   getUser,
   getAllUsers,
   updateUser,
   getVoucherHeld,
   decreaseUserVoucher,
+  getAllUsersPaginate,
+  changeUserRole,
 };

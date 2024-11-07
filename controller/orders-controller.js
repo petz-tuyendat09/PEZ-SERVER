@@ -2,6 +2,11 @@ const Order = require("../models/Order");
 const Product = require("../models/Product");
 const orderServices = require("../services/orderServices");
 const User = require("../models/User");
+const UserServices = require("../services/userServices");
+const Cart = require("../models/Cart");
+const { sendBookingEmail } = require("../utils/sendOrderEmail");
+const { sendNewOrderEmail } = require("../utils/sendNewOrderEmail");
+
 exports.getOrderByUserId = async (req, res) => {
   try {
     const { userId } = req.query;
@@ -27,45 +32,53 @@ exports.getOrderByOrderId = async (req, res) => {
 
 exports.insertOrders = async (req, res) => {
   try {
-    const { 
-      customerName, 
-      customerPhone, 
-      customerEmail, 
-      customerAddress, 
+    const {
+      customerName,
+      customerPhone,
+      customerEmail,
+      customerAddress,
       products,
-      orderTotal, 
+      orderTotal,
       voucherId,
-      orderDiscount, 
-      userId, 
-      totalAfterDiscount, 
-      paymentMethod, 
-      orderStatus 
+      orderDiscount,
+      userId,
+      totalAfterDiscount,
+      paymentMethod,
+      orderStatus,
     } = req.body;
 
     const OrderModel = new Order({
-      customerName, 
-      customerPhone, 
-      customerEmail, 
-      customerAddress, 
+      customerName,
+      customerPhone,
+      customerEmail,
+      customerAddress,
       products,
-      orderTotal, 
+      orderTotal,
       voucherId,
-      orderDiscount, 
-      userId, 
-      totalAfterDiscount, 
-      paymentMethod, 
-      orderStatus
+      orderDiscount,
+      userId,
+      totalAfterDiscount,
+      paymentMethod,
+      orderStatus,
     });
 
     const savedOrder = await OrderModel.save();
+    sendBookingEmail(customerEmail, savedOrder, products);
+    sendNewOrderEmail();
 
+    // Cập nhật số lượng sản phẩm
     const productUpdates = products.map(async (item) => {
-      const product = await Product.findOne({ _id: item.productId, "productOption.name": item.productOption });
+      const product = await Product.findOne({
+        _id: item.productId,
+        "productOption.name": item.productOption,
+      });
       if (!product) {
         throw new Error(`Product not found: ${item.productId}`);
       }
 
-      const option = product.productOption.find(option => option.name === item.productOption);
+      const option = product.productOption.find(
+        (option) => option.name === item.productOption
+      );
       if (!option || option.productQuantity < item.productQuantity) {
         throw new Error(`Insufficient quantity for product: ${item.productId}`);
       }
@@ -76,8 +89,8 @@ exports.insertOrders = async (req, res) => {
 
     await Promise.all(productUpdates);
 
-    let newUserPoint = 0; 
     if (userId) {
+      // Cập nhật thông tin đơn hàng cho người dùng
       const user = await User.findByIdAndUpdate(
         userId,
         {
@@ -92,21 +105,23 @@ exports.insertOrders = async (req, res) => {
         { new: true }
       );
 
-      if (user) {
-        newUserPoint = user.userPoint + orderTotal / 100;
-        user.userPoint = newUserPoint;
-        await user.save();
+      // Giảm số lượng voucher của người dùng
+      if (voucherId) {
+        await UserServices.decreaseUserVoucher(user._id, savedOrder.voucherId);
       }
+      // Reset cartItems về mảng rỗng
+      await Cart.findByIdAndUpdate(user.userCart, { cartItems: [] });
     }
 
-    return res.status(200).json({ success: true, orderId: savedOrder._id, userPoint: newUserPoint });
+    return res.status(200).json({
+      success: true,
+      orderId: savedOrder._id,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 exports.queryOrders = async (req, res) => {
   try {
@@ -120,6 +135,7 @@ exports.queryOrders = async (req, res) => {
       customerName,
       totalPriceSort,
       productQuantitySort,
+      orderStatus,
     } = req.query;
 
     const orders = await orderServices.queryOrders({
@@ -132,6 +148,7 @@ exports.queryOrders = async (req, res) => {
       customerName,
       totalPriceSort,
       productQuantitySort,
+      orderStatus,
     });
 
     res.status(200).json(orders);
@@ -167,23 +184,37 @@ exports.cancelOrder = async (req, res) => {
   }
 };
 
-exports.updatePaymentStatus = async (req, res) => {
+exports.editOrderStatus = async (req, res) => {
   try {
-    const { orderId, paymentStatus } = req.body;
-
-    const order = await Order.findById(orderId);
-    
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+    const { orderId, newStatus } = req.body;
+    if (!orderId || !newStatus) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID and new status are required.",
+      });
     }
 
-    order.paymentStatus = paymentStatus;
-    await order.save();
+    const updatedOrder = await orderServices.updateOrderStatus(
+      orderId,
+      newStatus
+    );
+    if (!updatedOrder) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể đổi sang trạng thái trước đó.",
+      });
+    }
 
-    return res.status(200).json({ success: true, message: "Payment status updated successfully" });
+    return res.status(200).json({
+      success: true,
+      message: "Order status updated successfully.",
+      data: updatedOrder,
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+    console.error("Error in editOrderStatus: ", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server Error", error: error.message });
   }
-}
-
+};
+>>>>>>> 1946f0ef42b9ee247465ff08d9380af3e8691adb

@@ -6,9 +6,13 @@ const userServices = require("../services/userServices");
 const getUserById = async (req, res) => {
   const userId = req.params.id;
   const result = await userServices.getUser({ _id: userId });
+  const user = { ...result.data._doc };
+  delete user.password;
+  delete user.userOrders;
+  delete user.userShift;
 
   if (result.success) {
-    res.status(200).json(result.data);
+    res.status(200).json(user);
   } else {
     res.status(404).json({ message: result.message });
   }
@@ -20,6 +24,25 @@ const getAllUsers = async (req, res) => {
 
   if (result.success) {
     res.status(200).json(result.data);
+  } else {
+    res.status(500).json({ message: result.message });
+  }
+};
+
+const getAllUsersPaginate = async (req, res) => {
+  const { page = 1, limit = 10, userRole, username, userEmail } = req.query;
+
+  // Tạo filters từ các tham số truy vấn
+  const filters = { userRole, username, userEmail };
+
+  const result = await userServices.getAllUsersPaginate(
+    Number(page),
+    Number(limit),
+    filters
+  );
+
+  if (result.success) {
+    res.status(200).json(result);
   } else {
     res.status(500).json({ message: result.message });
   }
@@ -43,29 +66,50 @@ const getVoucherHeld = async (req, res) => {
   try {
     const { userId, page, salePercentSort, typeFilter, limit } = req.query;
 
-    const result = await userServices.getVoucherHeld(
-      userId,
-      page,
-      salePercentSort,
-      typeFilter,
-      limit
-    );
-    return res.status(200).json(result);
+    if (!userId) {
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+
+    if (userId) {
+      const result = await userServices.getVoucherHeld(
+        userId,
+        page,
+        salePercentSort,
+        typeFilter,
+        limit
+      );
+      return res.status(200).json(result);
+    }
   } catch (error) {
     console.log("Error in getVoucherHeld - controller:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
-const test = async (req, res) => {
+const changeUserRole = async (req, res) => {
   try {
-    const { userId, voucherId } = req.body;
+    const { userId, newRole } = req.body;
 
-    const result = await userServices.decreaseUserVoucher(userId, voucherId);
-    return res.status(200).json(result);
+    // Kiểm tra input
+    if (!userId || !newRole) {
+      return res
+        .status(400)
+        .json({ message: "userId và newRole là bắt buộc." });
+    }
+
+    // Gọi service để thay đổi role
+    const updatedUser = await userServices.changeUserRole(userId, newRole);
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng." });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Cập nhật role thành công.", user: updatedUser });
   } catch (error) {
-    console.log("Error in getVoucherHeld - controller:", error);
-    return res.status(500).json({ message: "Internal Server Error" });
+    console.error("Error in changeUserRole:", error);
+    res.status(500).json({ message: "Có lỗi xảy ra khi cập nhật role." });
   }
 };
 
@@ -74,23 +118,57 @@ const deleteAllByUser = async (req, res) => {
     const userId = req.params.id;
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
     const cart = await Cart.findOne({ _id: user.userCart });
     cart.cartItems = [];
     await cart.save();
 
-    return res.status(200).json({ success: true, message: 'Cart cleared successfully' });
+    return res
+      .status(200)
+      .json({ success: true, message: "Cart cleared successfully" });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
-}
+};
+
+const changeUserShift = async (req, res) => {
+  try {
+    const { userId, shifts } = req.body; // Nhận userId và ca làm việc từ client
+
+    if (!userId || !Array.isArray(shifts) || shifts.length === 0) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { userShift: shifts },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
+
+    res.status(200).json({
+      message: "Cập nhật ca làm việc thành công",
+      userShift: updatedUser.userShift,
+    });
+  } catch (error) {
+    console.error("Error in changeUserShift:", error);
+    res.status(500).json({ message: "Đã xảy ra lỗi khi cập nhật ca làm việc" });
+  }
+};
 
 module.exports = {
   getUserById,
   getAllUsers,
   updateUserById,
   getVoucherHeld,
-  test,
-  deleteAllByUser
+  deleteAllByUser,
+  getAllUsersPaginate,
+  changeUserRole,
+  changeUserShift,
 };

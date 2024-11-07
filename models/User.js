@@ -48,7 +48,8 @@ const userSchema = new Schema({
   userRole: {
     type: String,
     required: false,
-    enum: ["admin", "user"],
+    enum: ["admin", "user", "spa", "manager", "seller"],
+
     default: "user",
   },
   userOrders: [
@@ -62,8 +63,6 @@ const userSchema = new Schema({
     },
   ],
   userPoint: { type: Number, required: false, default: 0 },
-  userLevel: { type: Number, require: false, default: 1 },
-  userExperiments: { type: Number, require: false, default: 0 },
   userVoucher: [
     {
       voucherId: {
@@ -78,18 +77,23 @@ const userSchema = new Schema({
       },
     },
   ],
-
   userCart: {
     type: ObjectId,
     ref: "Cart",
     required: true,
   },
-
-  userImage: {
-    type: String,
-    required: false,
-    default: "default-user-image.png",
-  },
+  userShift: [
+    {
+      startTime: {
+        type: String,
+        required: false,
+      },
+      endTime: {
+        type: String,
+        required: false,
+      },
+    },
+  ],
 });
 
 module.exports = mongoose.model("User", userSchema);

@@ -65,8 +65,10 @@ const isTempUserExists = async (email, otp) => {
  */
 exports.saveTempUser = async ({ email, username, password, otp }) => {
   try {
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
+    let hashedPassword;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    }
     // Check xem đã tồn tại chưa
     let duplicated = await isTempUserExists(email, otp);
 
@@ -194,10 +196,12 @@ exports.authenticateUser = async (loginkey, password) => {
     message = "Tài khoản không tồn tại";
     return { success, message };
   }
+  let isPasswordValid;
 
-  console.log(existingUser);
+  if (password) {
+    isPasswordValid = await bcrypt.compare(password, existingUser.password);
+  }
 
-  const isPasswordValid = await bcrypt.compare(password, existingUser.password);
   if (!isPasswordValid) {
     success = false;
     message = "Sai mật khẩu";
@@ -269,28 +273,31 @@ exports.generateRefreshToken = (userId, secret, expiresIn) => {
 
 exports.loginWithGoogle = async ({ googleId, displayName, email }) => {
   try {
-    let user = await User.findOne({ userEmail: email }).populate("userCart");
+    // Tìm người dùng dựa trên email
+    let user = await User.findOne({ userEmail: email });
 
     if (user) {
-      // Nếu người dùng đã tồn tại, gán googleId cho người dùng đó
+      // Nếu người dùng đã tồn tại, gán googleId và populate giỏ hàng
       user.googleId = googleId;
       await user.save();
+      user = await user.populate("userCart");
     } else {
       // Nếu người dùng không tồn tại, tạo người dùng mới và giỏ hàng
       const newCart = new Cart();
       await newCart.save();
 
-      user = await new User({
+      user = new User({
         googleId: googleId,
         username: email,
         userEmail: email,
         userActive: true,
         displayName: displayName,
         userCart: newCart._id,
-      }).save();
+      });
+      await user.save();
 
-      // Populate userCart khi người dùng mới được tạo
-      user = await user.populate("userCart").execPopulate();
+      // Populate giỏ hàng cho người dùng mới
+      user = await user.populate("userCart");
     }
 
     // Tạo token và refresh token
@@ -310,5 +317,60 @@ exports.loginWithGoogle = async ({ googleId, displayName, email }) => {
   } catch (error) {
     console.error("Error in loginWithGoogle service:", error);
     throw error;
+  }
+};
+
+exports.verifyOtpForgetPassword = async ({ email, otpCode }) => {
+  try {
+    let message;
+    let success;
+    const tempUser = await TempUser.findOne({ userEmail: email });
+
+    if (!tempUser) {
+      success = false;
+      message = "OTP đã hết hạn, vui lòng thử lại";
+      return { success, message };
+    }
+
+    if (tempUser.otp !== otpCode) {
+      success = false;
+      message = "Vui lòng kiểm tra lại mã OTP";
+      return { success, message };
+    }
+
+    await TempUser.deleteOne({ userEmail: email });
+
+    success = true;
+    message = "Xác minh thành công";
+    return { success, message };
+  } catch (error) {
+    console.error("Error in verifyOtp controller:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.resetPassword = async ({ email, newPassword }) => {
+  try {
+    // Tìm user theo email
+    const user = await User.findOne({ userEmail: email });
+
+    if (!user) {
+      return { success: false, message: "Không tìm thấy user" };
+    }
+
+    // Nếu mật khẩu mới tồn tại, tiến hành hash mật khẩu
+    if (newPassword) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      // Cập nhật mật khẩu mới cho user
+      user.password = hashedPassword;
+      await user.save(); // Lưu thay đổi vào cơ sở dữ liệu
+    }
+
+    return { success: true, message: "Đổi mật khẩu thành công" };
+  } catch (error) {
+    console.error("Error in resetPassword service:", error);
+    return { success: false, message: "Internal server error" };
   }
 };

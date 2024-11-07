@@ -33,6 +33,8 @@ exports.queryProducts = async (req, res) => {
       productBuy: req.query.productBuy,
       page: req.query.page,
       limit: parseInt(req.query.limit, 10) || 20,
+      lowStock: req.query.lowStock === "true", // Convert to boolean
+      sortBy: req.query.sortBy,
     };
 
     const products = await productService.queryProducts(filters);
@@ -46,15 +48,17 @@ exports.queryProductsByCateId = async (req, res) => {
   const { categoryId } = req.query;
 
   if (!categoryId) {
-    return res.status(400).json({ error: 'categoryId is required' });
+    return res.status(400).json({ error: "categoryId is required" });
   }
 
   try {
     const products = await Product.find({ productCategory: categoryId });
     return res.status(200).json(products);
   } catch (err) {
-    console.error(err); 
-    return res.status(500).json({ error: 'Internal Server Error', message: err.message });
+    console.error(err);
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", message: err.message });
   }
 };
 
@@ -141,5 +145,33 @@ exports.editProduct = async (req, res) => {
     res.status(200).json({ message: message });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.lowstockNofi = async (req, res) => {
+  try {
+    const { productId } = req.body;
+    productService.lowstockNofi({ productId });
+
+    res.status(200).json({ message: "Thông báo thành công" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error" });
+  }
+};
+
+exports.getReview = async (req, res) => {
+  try {
+    const { ratingStatus, sort, page = 1, limit = 10 } = req.query;
+    const reviewsData = await productService.queryReviews({
+      ratingStatus,
+      sort,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    });
+    res.status(200).json(reviewsData);
+  } catch (error) {
+    console.log("Error in getReview:", error);
+    res.status(500).json({ message: "Error retrieving reviews" });
   }
 };

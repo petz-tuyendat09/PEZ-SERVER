@@ -9,6 +9,12 @@ router.post("/login", authController.login);
 router.post("/refresh-token", authController.refreshToken);
 router.post("/verify-otp", authController.verifyOtp);
 router.post("/resend-otp", authController.resendOTP);
+router.post("/forgot-password", authController.forgotPassord);
+router.post(
+  "/verify-otp-forget-password",
+  authController.verifyOtpForgetPassword
+);
+router.post("/reset-password", authController.resetPassword);
 
 // === Google Auth ===
 router.post("/google", authController.loginWithGoogle);

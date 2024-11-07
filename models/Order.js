@@ -14,7 +14,8 @@ const orderSchema = new Schema(
     },
     customerEmail: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     customerAddress: {
       type: String,
@@ -29,6 +30,10 @@ const orderSchema = new Schema(
         },
         productQuantity: {
           type: Number,
+          required: true,
+        },
+        productName: {
+          type: String,
           required: true,
         },
         productOption: {
@@ -70,7 +75,15 @@ const orderSchema = new Schema(
     paymentStatus: { type: Boolean },
     orderStatus: {
       type: String,
-      enum: ["PENDING", "DELIVERING", "CANCELLED"],
+      enum: [
+        "PENDING",
+        "PAID",
+        "FAILED",
+        "DELIVERING",
+        "DELIVERED",
+        "CANCELLED",
+      ],
+      default: "PENDING",
     },
     createdDate: { type: Date, default: Date.now },
   },

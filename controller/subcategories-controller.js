@@ -33,21 +33,27 @@ exports.querySubCategoriesByPage = async (req, res) => {
 exports.editSubCategory = async (req, res) => {
   try {
     const { newSubCategoryName, newCategoryId, editSubCategoryId } = req.body;
+    console.log(req.body);
 
     const existingSubCategoryName =
-      await subCategoriesServices.existingSubCategoryName(newSubCategoryName);
+      await subCategoriesServices.existingSubCategoryName(
+        newSubCategoryName,
+        newCategoryId
+      );
 
     if (existingSubCategoryName) {
+      console.log("Tên danh mục đã tồn tại");
       return res.status(400).json({ message: "Tên danh mục đã tồn tại" });
     }
 
-    const result = await subCategoriesServices.editSubCategory(
+    await subCategoriesServices.editSubCategory(
       editSubCategoryId,
       newSubCategoryName,
       newCategoryId
     );
-    return res.status(200).json(result);
+    return res.status(200).json({ message: "Sửa danh mục thành công" });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: err.message });
   }
 };
