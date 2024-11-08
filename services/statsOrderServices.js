@@ -1,62 +1,49 @@
 const Order = require("../models/Order");
 
-async function getOrderStatistics({ year, month, day }) {
-    const matchConditions = {};
-
-    if (year) {
-        matchConditions.createdAt = {
-            ...matchConditions.createdAt,
-            $gte: new Date(year, 0, 1),
-            $lte: new Date(year, 11, 31),
-        };
-    }
-
-    if (month) {
-        matchConditions.createdAt = {
-            ...matchConditions.createdAt,
-            $gte: new Date(year, month - 1, 1),
-            $lte: new Date(year, month, 0),
-        };
-    }
-
-    if (day) {
-        matchConditions.createdAt = {
-            ...matchConditions.createdAt,
-            $gte: new Date(year, month - 1, day),
-            $lte: new Date(year, month - 1, day, 23, 59, 59, 999),
-        };
-    }
-
+async function getOrderStatistics({ startDate, endDate }) {
     try {
-        const stats = await Order.aggregate([
-            { $match: matchConditions },
-            {
-                $group: {
-                    _id: { $month: "$createdAt" },
-                    totalRevenue: { $sum: { $cond: [{ $eq: ["$orderStatus", "DELIVERED"] }, "$orderTotal", 0] } },
-                    ordersSold: { $sum: { $cond: [{ $eq: ["$orderStatus", "DELIVERED"] }, 1, 0] } },
-                    ordersCancelled: { $sum: { $cond: [{ $eq: ["$orderStatus", "CANCELLED"] }, 1, 0] } },
-                },
-            },
-            { $sort: { _id: 1 } },  // Sắp xếp theo tháng
-        ]);
+        // Parse the date strings into components
+        const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+        const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
 
-        const monthlyRevenue = new Array(12).fill(0);
-        const ordersSold = new Array(12).fill(0);
-        const ordersCancelled = new Array(12).fill(0);
+        // Create Date objects (months are zero-indexed)
+        const startDateFormat = new Date(startYear, startMonth - 1, startDay);
+        const endDateFormat = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
 
-        stats.forEach((stat) => {
-            monthlyRevenue[stat._id - 1] = stat.totalRevenue;
-            ordersSold[stat._id - 1] = stat.ordersSold;
-            ordersCancelled[stat._id - 1] = stat.ordersCancelled;
+        // Validate the Date objects
+        if (isNaN(startDateFormat.getTime()) || isNaN(endDateFormat.getTime())) {
+            throw new Error('Invalid date format. Please use "YYYY-MM-DD".');
+        }
+
+        // Query for orders within the date range
+        const orders = await Order.find({
+            createdAt: { $gte: startDateFormat, $lte: endDateFormat },
         });
 
-        return { monthlyRevenue, ordersSold, ordersCancelled };
-    } catch (error) {
-        throw new Error("Error retrieving statistics: " + error.message);
-    }
+        let ordersCancelled = 0;
+        let ordersSold = 0;
+        let totalRevenue = 0;
 
+        // Loop through orders to calculate statistics
+        orders.forEach((order) => {
+            if (order.orderStatus === "CANCELLED") {
+                ordersCancelled += 1;
+            }
+            if (order.orderStatus === "DELIVERED") {
+                ordersSold += 1;
+                totalRevenue += order.totalAfterDiscount;
+            }
+        });
+
+        // Return the calculated statistics
+        return { totalRevenue, ordersSold, ordersCancelled };
+
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
 }
+
 
 module.exports = {
     getOrderStatistics,
