@@ -15,6 +15,10 @@ const productReviewSchema = new Schema(
       min: 1,
       max: 5,
     },
+    reviewContent: {
+      type: String,
+      default: null,
+    },
     productId: {
       type: ObjectId,
       required: true,

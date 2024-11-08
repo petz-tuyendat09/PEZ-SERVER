@@ -162,17 +162,48 @@ exports.lowstockNofi = async (req, res) => {
 
 exports.getReview = async (req, res) => {
   try {
-    const { userId, ratingStatus, sort, page = 1, limit = 10 } = req.query;
+    const {
+      userId,
+      ratingStatus,
+      sort,
+      star,
+      page = 1,
+      limit = 10,
+    } = req.query;
     const reviewsData = await productService.queryReviews({
       userId,
       ratingStatus,
       sort,
+      star,
       page: parseInt(page),
       limit: parseInt(limit),
     });
     res.status(200).json(reviewsData);
   } catch (error) {
     console.log("Error in getReview:", error);
-    res.status(500).json({ message: "Error retrieving reviews" });
+    res.status(500).json({ message: "Lỗi khi get reviews" });
+  }
+};
+exports.review = async (req, res) => {
+  try {
+    const { reviewId, rating, reviewContent } = req.body;
+
+    const updatedReview = await productService.updateReview(
+      reviewId,
+      rating,
+      reviewContent
+    );
+
+    if (!updatedReview) {
+      return res.status(404).json({ message: "Review không tồn tại" });
+    }
+
+    res.status(200).json({
+      message: "Cập nhật review thành công",
+      updatedReview,
+    });
+  } catch (error) {
+    console.error("Error in review:", error);
+    res.status(500).json({ message: "Lỗi khi cập nhật review" });
   }
 };

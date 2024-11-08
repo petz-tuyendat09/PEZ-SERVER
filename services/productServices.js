@@ -599,6 +599,7 @@ exports.queryReviews = async ({
   userId,
   ratingStatus,
   sort,
+  star,
   page = 1,
   limit = 10,
 }) => {
@@ -620,6 +621,9 @@ exports.queryReviews = async ({
     if (userId) {
       filter.userId = userId;
     }
+    if (star) {
+      filter.rating = star;
+    }
 
     const skip = (page - 1) * limit;
 
@@ -627,7 +631,8 @@ exports.queryReviews = async ({
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
-      .populate("userId", "userEmail");
+      .populate("userId", "userEmail")
+      .populate("productId", "productSlug");
 
     const totalReviews = await ReviewProducts.countDocuments(filter);
 
@@ -638,6 +643,25 @@ exports.queryReviews = async ({
     };
   } catch (error) {
     console.error("Error in queryReviews:", error);
+    throw error;
+  }
+};
+
+exports.updateReview = async (reviewId, rating, reviewContent) => {
+  try {
+    // Tìm và cập nhật review
+    const updatedReview = await ReviewProducts.findByIdAndUpdate(
+      reviewId,
+      {
+        rating,
+        reviewContent,
+      },
+      { new: true }
+    );
+
+    return updatedReview;
+  } catch (error) {
+    console.error("Error in updateReview:", error);
     throw error;
   }
 };
