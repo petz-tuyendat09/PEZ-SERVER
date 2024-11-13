@@ -1,33 +1,46 @@
 const Booking = require("../models/Booking");
 
-async function getBookingStatistics({ year }) {
-    const matchConditions = { bookingStatus: "Done" };
-
+async function getBookingStatistics({ startDate, endDate }) {
     try {
-        const stats = await Booking.aggregate([
-            {
-                $match: matchConditions
-            },
-            {
-                $group: {
-                    _id: { $month: "$bookingDate" },
-                    totalRevenue: { $sum: "$totalPrice" }
-                }
-            },
-            {
-                $sort: { _id: 1 }
-            }
-        ]);
+        // Parse the date strings into components
+        const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+        const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
 
-        // Create an array for monthly revenue with 12 months
-        const monthlyRevenue = new Array(12).fill(0);
-        stats.forEach(stat => {
-            monthlyRevenue[stat._id - 1] = stat.totalRevenue;
+        // Create Date objects (months are zero-indexed)
+        const startDateFormat = new Date(startYear, startMonth - 1, startDay);
+        const endDateFormat = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
+
+        // Validate the Date objects
+        if (isNaN(startDateFormat.getTime()) || isNaN(endDateFormat.getTime())) {
+            throw new Error('Invalid date format. Please use "YYYY-MM-DD".');
+        }
+
+        // Query for bookings within the date range
+        const bookings = await Booking.find({
+            bookingDate: { $gte: startDateFormat, $lte: endDateFormat },
         });
 
-        return { monthlyRevenue };
+        let totalBooking = 0;
+        let bookingsDone = 0;
+        let bookingsCancelled = 0;
+
+        // Loop through bookings to calculate statistics
+        bookings.forEach((booking) => {
+            if (booking.bookingStatus === "Canceled") {
+                bookingsCancelled += 1;
+            }
+            if (booking.bookingStatus === "Done") {
+                bookingsDone += 1;
+                totalBooking += booking.totalPrice;
+            }
+        });
+
+        // Return the calculated statistics
+        return { totalBooking, bookingsDone, bookingsCancelled };
+
     } catch (error) {
-        throw new Error("Error retrieving booking statistics: " + error.message);
+        console.error(error);
+        throw error;
     }
 }
 

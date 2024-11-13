@@ -22,21 +22,21 @@ async function getOrderStatistics({ startDate, endDate }) {
 
         let ordersCancelled = 0;
         let ordersSold = 0;
-        let totalRevenue = 0;
+        let totalOrder = 0;
 
         // Loop through orders to calculate statistics
         orders.forEach((order) => {
             if (order.orderStatus === "CANCELLED") {
                 ordersCancelled += 1;
             }
-            if (order.orderStatus === "DELIVERED") {
+            if (order.orderStatus === "DELIVERED" || order.orderStatus === "PAID") {
                 ordersSold += 1;
-                totalRevenue += order.totalAfterDiscount;
+                totalOrder += order.totalAfterDiscount;
             }
         });
 
         // Return the calculated statistics
-        return { totalRevenue, ordersSold, ordersCancelled };
+        return { totalOrder, ordersSold, ordersCancelled };
 
     } catch (error) {
         console.error(error);
