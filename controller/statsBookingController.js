@@ -1,13 +1,15 @@
-const { getBookingStatistics } = require("../services/statsBookingServices");
+const statsBookingServices = require("../services/statsBookingServices");
 
 async function getStatistics(req, res) {
-    const { year } = req.query;
+    const { startDate, endDate, day, month, year } = req.query;
+
 
     try {
-        const stats = await getBookingStatistics({ year });
-        res.status(200).json(stats);
+        const stats = await statsBookingServices.getBookingStatistics({ startDate, endDate, day, month, year });
+        res.json(stats);
     } catch (error) {
-        res.status(500).json({ message: "Error retrieving booking statistics", error: error.message });
+        console.log(error)
+        res.status(500).json({ error: error.message });
     }
 }
 
