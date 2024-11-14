@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const UserVoucher = require("../models/UserVoucher");
 const bcrypt = require("bcrypt");
 
 /**
@@ -125,59 +126,46 @@ const getVoucherHeld = async (
       throw new Error("User ID is required");
     }
 
-    const currentPage = parseInt(page);
-    const itemsPerPage = parseInt(limit);
-
+    const currentPage = parseInt(page, 10);
+    const itemsPerPage = parseInt(limit, 10);
     const skip = (currentPage - 1) * itemsPerPage;
 
-    const user = await User.findById(userId).select("userVoucher").populate({
-      path: "userVoucher.voucherId",
-      model: "Voucher",
-    });
+    // Query bảng UserVoucher
+    const query = { userId };
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const query = {};
     if (typeFilter) {
-      query.voucherType = new RegExp(typeFilter, "i");
+      query["vouchers.voucherId.voucherType"] = new RegExp(typeFilter, "i");
     }
 
     if (voucherId && mongoose.Types.ObjectId.isValid(voucherId)) {
-      query._id = voucherId;
+      query["vouchers.voucherId._id"] = voucherId;
     }
 
-    const userVouchers = user.userVoucher.filter((voucher) => {
-      let isValid = true;
-      if (
-        query.voucherType &&
-        !query.voucherType.test(voucher.voucherId.voucherType)
-      ) {
-        isValid = false;
-      }
-      if (
-        query._id &&
-        voucher.voucherId._id.toString() !== query._id.toString()
-      ) {
-        isValid = false;
-      }
-      return isValid;
-    });
+    const userVouchers = await UserVoucher.find(query)
+      .populate({
+        path: "vouchers.voucherId",
+      })
+      .skip(skip)
+      .limit(itemsPerPage);
 
-    const sortedVouchers = userVouchers.sort((a, b) => {
-      if (salePercentSort === "asc") {
-        return a.voucherId.salePercent - b.voucherId.salePercent;
-      } else if (salePercentSort === "desc") {
-        return b.voucherId.salePercent - a.voucherId.salePercent;
-      } else {
-        return 0;
-      }
-    });
+    // Nếu cần sắp xếp theo salePercent
+    const sortedVouchers = userVouchers.flatMap((userVoucher) =>
+      userVoucher.vouchers.sort((a, b) => {
+        if (salePercentSort === "asc") {
+          return a.voucherId.salePercent - b.voucherId.salePercent;
+        } else if (salePercentSort === "desc") {
+          return b.voucherId.salePercent - a.voucherId.salePercent;
+        } else {
+          return 0;
+        }
+      })
+    );
 
+    // Tổng số voucher
     const totalItems = sortedVouchers.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
 
+    // Phân trang
     const paginatedVouchers = sortedVouchers.slice(skip, skip + itemsPerPage);
 
     return {
@@ -186,7 +174,7 @@ const getVoucherHeld = async (
       totalPages,
     };
   } catch (error) {
-    console.log("Error in getVoucherHeldWithQuery - services", error);
+    console.log("Error in getVoucherHeld - services:", error);
     throw new Error("Failed to fetch vouchers");
   }
 };

@@ -2,6 +2,7 @@
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
 const TempUser = require("../models/TempUser");
+const UserVoucher = require("../models/UserVoucher");
 const Cart = require("../models/Cart");
 const jwt = require("jsonwebtoken");
 const SALT_ROUNDS = 10;
@@ -173,6 +174,11 @@ createUser = async ({ email, username, password }) => {
     userCart: newCart._id,
   });
 
+  const newUserVoucher = new UserVoucher({
+    userId: newUser._id,
+  });
+
+  await newUserVoucher.save();
   await newUser.save();
 
   return newUser;
@@ -294,6 +300,12 @@ exports.loginWithGoogle = async ({ googleId, displayName, email }) => {
         displayName: displayName,
         userCart: newCart._id,
       });
+
+      const newUserVoucher = new UserVoucher({
+        userId: user._id,
+      });
+
+      await newUserVoucher.save();
       await user.save();
 
       // Populate giỏ hàng cho người dùng mới
