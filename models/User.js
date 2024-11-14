@@ -49,7 +49,6 @@ const userSchema = new Schema({
     type: String,
     required: false,
     enum: ["admin", "user", "spa", "manager", "seller"],
-
     default: "user",
   },
   userOrders: [
@@ -63,20 +62,7 @@ const userSchema = new Schema({
     },
   ],
   userPoint: { type: Number, required: false, default: 0 },
-  userVoucher: [
-    {
-      voucherId: {
-        type: ObjectId,
-        ref: "Voucher",
-        required: true,
-      },
-      quantity: {
-        type: Number,
-        required: true,
-        default: 1,
-      },
-    },
-  ],
+
   userCart: {
     type: ObjectId,
     ref: "Cart",

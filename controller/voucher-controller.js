@@ -19,18 +19,28 @@ exports.getVoucher = async (req, res) => {
 
 exports.insertVoucher = async (req, res) => {
   try {
-    const { voucherType, salePercent, voucherPoint, voucherDescription } =
-      req.body;
+    const {
+      voucherType,
+      voucherPoint,
+      expirationDate,
+      maxRedemption,
+      voucherDescription,
+      flatDiscountAmount,
+      salePercent,
+      shippingDiscountAmount,
+      totalToUse,
+    } = req.body;
 
-    // Log the received data for debugging
-    console.table([voucherType, salePercent, voucherPoint, voucherDescription]);
-
-    // Call the service to insert the voucher
     const { success, message } = await voucherServices.insertVoucher(
       voucherType,
-      salePercent,
       voucherPoint,
-      voucherDescription
+      expirationDate,
+      maxRedemption,
+      voucherDescription,
+      flatDiscountAmount,
+      salePercent,
+      shippingDiscountAmount,
+      totalToUse
     );
 
     if (!success) {
@@ -80,8 +90,13 @@ exports.editVoucher = async (req, res) => {
     editVoucherId,
     newVoucherType,
     newVoucherSalePercent,
+    newExpirationDate,
+    newMaxRedemption,
+    newTotalToUse,
     newVoucherPoint,
     newVoucherDescription,
+    newFlatDiscountAmount,
+    newShippingDiscountAmount,
   } = req.body;
 
   try {
@@ -93,8 +108,13 @@ exports.editVoucher = async (req, res) => {
       editVoucherId,
       newVoucherType,
       newVoucherSalePercent,
+      newExpirationDate,
+      newMaxRedemption,
+      newTotalToUse,
       newVoucherPoint,
-      newVoucherDescription
+      newVoucherDescription,
+      newFlatDiscountAmount,
+      newShippingDiscountAmount
     );
 
     if (!updatedVoucher) {
