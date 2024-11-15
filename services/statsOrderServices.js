@@ -29,7 +29,7 @@ async function getOrderStatistics({ startDate, endDate }) {
             if (order.orderStatus === "CANCELLED") {
                 ordersCancelled += 1;
             }
-            if (order.orderStatus === "DELIVERED" || order.orderStatus === "PAID") {
+            if (order.orderStatus === "DELIVERED" || order.orderStatus === "PAID" || order.orderStatus === "DELIVERING") {
                 ordersSold += 1;
                 totalOrder += order.totalAfterDiscount;
             }
