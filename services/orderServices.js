@@ -1,6 +1,7 @@
 const Order = require("../models/Order");
 const User = require("../models/User");
 const ReviewProducts = require("../models/ReviewProducts");
+const Product = require("../models/Product");
 const { sendDeliveringEmail } = require("../utils/sendDeliveringEmail");
 const { sendDeliveredEmail } = require("../utils/sendDeliveredEmail");
 
@@ -126,10 +127,27 @@ exports.getOrderByOrderId = async (orderId) => {
 
 exports.cancelOrder = async (orderId) => {
   try {
+    // Tìm đơn hàng
     const order = await Order.findById(orderId);
-    console.log(order);
     if (!order) {
       return { success: false, message: "Order not found" };
+    }
+
+    if (order.orderStatus === "CANCELLED") {
+      return { success: false, message: "Order is already cancelled" };
+    }
+
+    for (const product of order.products) {
+      const productInDb = await Product.findById(product.productId);
+      if (productInDb) {
+        const productOption = productInDb.productOption.find(
+          (option) => option.name === product.productOption
+        );
+        if (productOption) {
+          productOption.productQuantity += product.productQuantity;
+        }
+      }
+      await productInDb.save();
     }
 
     order.orderStatus = "CANCELLED";
@@ -206,6 +224,21 @@ exports.updateOrderStatus = async (orderId, newStatus) => {
       );
     }
     sendDeliveredEmail(order);
+  }
+
+  if (newStatus === "CANCELLED") {
+    for (const product of order.products) {
+      const productInDb = await Product.findById(product.productId);
+      if (productInDb) {
+        const productOption = productInDb.productOption.find(
+          (option) => option.name === product.productOption
+        );
+        if (productOption) {
+          productOption.productQuantity += product.productQuantity;
+        }
+      }
+      await productInDb.save();
+    }
   }
 
   // Update the order status
