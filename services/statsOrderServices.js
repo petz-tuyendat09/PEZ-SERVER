@@ -34,22 +34,29 @@ async function getOrderStatistics({ startDate, endDate }) {
     let orderPending = 0;
     let orderDelivering = 0;
 
+    const monthlyRevenue = Array(12).fill(0); // Tạo mảng 12 phần tử, mỗi phần tử đại diện cho một tháng.
+
     // Loop through orders to calculate statistics
     orders.forEach((order) => {
+      const month = new Date(order.createdAt).getMonth(); // Lấy tháng từ ngày tạo đơn hàng.
+
       if (order.orderStatus === "CANCELLED") {
         ordersCancelled += 1;
       }
       if (order.orderStatus === "DELIVERED" || order.orderStatus === "PAID") {
         ordersSold += 1;
         totalOrder += order.totalAfterDiscount;
+        monthlyRevenue[month] += order.totalAfterDiscount; // Cộng doanh thu vào tháng tương ứng.
       }
       if (order.orderStatus === "PENDING") {
         orderPending += 1;
         totalOrder += order.totalAfterDiscount;
+        monthlyRevenue[month] += order.totalAfterDiscount; // Cộng doanh thu vào tháng tương ứng.
       }
       if (order.orderStatus === "DELIVERING") {
         orderDelivering += 1;
         totalOrder += order.totalAfterDiscount;
+        monthlyRevenue[month] += order.totalAfterDiscount; // Cộng doanh thu vào tháng tương ứng.
       }
     });
 
@@ -60,6 +67,7 @@ async function getOrderStatistics({ startDate, endDate }) {
       ordersCancelled,
       orderPending,
       orderDelivering,
+      monthlyRevenue,
     };
   } catch (error) {
     console.error(error);
