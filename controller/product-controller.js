@@ -1,4 +1,3 @@
-const { searchRegexVietnamese } = require("../helpers/searchHelper");
 const Product = require("../models/Product");
 const productService = require("../services/productServices");
 
