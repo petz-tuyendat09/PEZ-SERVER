@@ -63,8 +63,6 @@ exports.insertOrders = async (req, res) => {
     });
 
     const savedOrder = await OrderModel.save();
-    sendBookingEmail(customerEmail, savedOrder, products);
-    sendNewOrderEmail();
 
     // Cập nhật số lượng sản phẩm
     const productUpdates = products.map(async (item) => {
@@ -112,6 +110,8 @@ exports.insertOrders = async (req, res) => {
       // Reset cartItems về mảng rỗng
       await Cart.findByIdAndUpdate(user.userCart, { cartItems: [] });
     }
+    sendBookingEmail(customerEmail, savedOrder, products);
+    sendNewOrderEmail();
 
     return res.status(200).json({
       success: true,
