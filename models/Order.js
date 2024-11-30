@@ -72,7 +72,6 @@ const orderSchema = new Schema(
       enum: ["COD", "BANKING"],
       required: true,
     },
-    paymentStatus: { type: Boolean },
     orderStatus: {
       type: String,
       enum: [
@@ -91,7 +90,7 @@ const orderSchema = new Schema(
       required: false,
       default: undefined,
     },
-
+  },
   { timestamps: true }
 );
 

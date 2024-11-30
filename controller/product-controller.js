@@ -24,13 +24,36 @@ exports.getProductsWithPagination = async (req, res) => {
 exports.queryProducts = async (req, res) => {
   try {
     const filters = {
+      productCategory: req.query.productCategory,
+      productSlug: req.query.productSlug,
+      productSubCategory: req.query.productSubCategory,
+      productName: req.query.productName,
+      salePercent: req.query.salePercent,
+      productStatus: req.query.productStatus,
+      productBuy: req.query.productBuy,
+      page: req.query.page,
+      limit: parseInt(req.query.limit, 10) || 20,
+      lowStock: req.query.lowStock === "true", // Convert to boolean
+      sortBy: req.query.sortBy,
+    };
+
+    const products = await productService.queryProducts(filters);
+    return res.status(200).json(products);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.queryProductsNguyet = async (req, res) => {
+  try {
+    const filters = {
       search: req.query.search,
       fromPrice: req.query.fromPrice,
       toPrice: req.query.toPrice,
       productCategory: Array.isArray(req.query.productCategory)
         ? req.query.productCategory
         : req.query.productCategory
-        ? req.query.productCategory.split(',')
+        ? req.query.productCategory.split(",")
         : [],
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
@@ -39,36 +62,45 @@ exports.queryProducts = async (req, res) => {
       page: parseInt(req.query.page, 10) || 1,
       limit: parseInt(req.query.limit, 10) || 10,
       sortBy: req.query.sortBy,
-      'productOption.name': Array.isArray(req.query.size) ? req.query.size : req.query.size ? req.query.size.split(',') : [],
+      "productOption.name": Array.isArray(req.query.size)
+        ? req.query.size
+        : req.query.size
+        ? req.query.size.split(",")
+        : [],
     };
 
     const query = {};
-    
+
     if (filters.search) {
       query.$or = [
-        { productName: { $regex: '.*' + searchRegexVietnamese(filters.search) + '.*', $options: 'i' } }
+        {
+          productName: {
+            $regex: ".*" + searchRegexVietnamese(filters.search) + ".*",
+            $options: "i",
+          },
+        },
       ];
     }
 
     const fromPrice = filters.fromPrice ? parseFloat(filters.fromPrice) : null;
     const toPrice = filters.toPrice ? parseFloat(filters.toPrice) : null;
     if (fromPrice && toPrice) {
-      query['productOption.productPrice'] = { 
-        $gte: fromPrice, 
-        $lte: toPrice 
+      query["productOption.productPrice"] = {
+        $gte: fromPrice,
+        $lte: toPrice,
       };
     } else if (fromPrice) {
-      query['productOption.productPrice'] = { 
-        $gte: fromPrice 
+      query["productOption.productPrice"] = {
+        $gte: fromPrice,
       };
     } else if (toPrice) {
-      query['productOption.productPrice'] = { 
-        $lte: toPrice 
+      query["productOption.productPrice"] = {
+        $lte: toPrice,
       };
     }
 
-    if (filters['productOption.name'].length > 0) {
-      query['productOption.name'] = { $in: filters['productOption.name'] };
+    if (filters["productOption.name"].length > 0) {
+      query["productOption.name"] = { $in: filters["productOption.name"] };
     }
 
     if (filters.productCategory && filters.productCategory.length > 0) {
