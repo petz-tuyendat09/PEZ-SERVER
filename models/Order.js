@@ -82,11 +82,16 @@ const orderSchema = new Schema(
         "DELIVERING",
         "DELIVERED",
         "CANCELLED",
+        "REFUND",
       ],
       default: "PENDING",
     },
-    createdDate: { type: Date, default: Date.now },
-  },
+    transIDMomo: {
+      type: String,
+      required: false,
+      default: undefined,
+    },
+
   { timestamps: true }
 );
 

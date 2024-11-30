@@ -13,6 +13,16 @@ const voucherSchema = new Schema(
       required: false,
       default: undefined,
     },
+    limitedDate: {
+      type: Date,
+      required: false,
+      default: undefined,
+    },
+    voucherQuantity: {
+      type: Number,
+      required: false,
+      default: null,
+    },
     salePercent: {
       type: Number,
       required: false,

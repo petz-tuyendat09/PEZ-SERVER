@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 const Order = require("../models/Order");
 const User = require("../models/User");
-const UserServices = require("../services/userServices");
 
 exports.paymentCallback = async (req, res) => {
   try {
@@ -40,6 +39,7 @@ exports.paymentCallback = async (req, res) => {
       return res.status(400).json({ error: "Chữ ký không hợp lệ." });
     }
 
+    // Xử lý khi thanh toán thành công
     if (resultCode === 0) {
       const order = await Order.findOne({ _id: orderId });
 
@@ -47,14 +47,17 @@ exports.paymentCallback = async (req, res) => {
         return res.status(404).json({ error: "Order not found." });
       }
 
+      // Cập nhật trạng thái và lưu transIDMomo
       order.orderStatus = "PAID";
+      order.transIDMomo = transId; // Lưu transId từ MoMo vào Order
       await order.save();
 
+      // Cộng điểm cho người dùng nếu có userId
       if (order.userId) {
         const user = await User.findById(order.userId);
 
         if (user) {
-          const pointsToAdd = parseInt(amount) / 100;
+          const pointsToAdd = parseInt(amount) / 100; // Quy đổi điểm
           user.userPoint += pointsToAdd;
           await user.save();
         }
@@ -62,7 +65,15 @@ exports.paymentCallback = async (req, res) => {
 
       return res.status(200).json({ message: "Thanh toán thành công." });
     }
+
+    // Xử lý khi thanh toán thất bại
     if (resultCode !== 0) {
+      const order = await Order.findOne({ _id: orderId });
+
+      if (!order) {
+        return res.status(404).json({ error: "Order not found." });
+      }
+
       order.orderStatus = "FAILED";
       await order.save();
 

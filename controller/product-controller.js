@@ -232,6 +232,9 @@ exports.getReview = async (req, res) => {
     const {
       userId,
       ratingStatus,
+      productId,
+      publicStatus,
+      reviewId,
       sort,
       star,
       page = 1,
@@ -240,6 +243,9 @@ exports.getReview = async (req, res) => {
     const reviewsData = await productService.queryReviews({
       userId,
       ratingStatus,
+      productId,
+      publicStatus,
+      reviewId,
       sort,
       star,
       page: parseInt(page),
@@ -251,6 +257,7 @@ exports.getReview = async (req, res) => {
     res.status(500).json({ message: "Lỗi khi get reviews" });
   }
 };
+
 exports.review = async (req, res) => {
   try {
     const { reviewId, rating, reviewContent } = req.body;
@@ -259,6 +266,29 @@ exports.review = async (req, res) => {
       reviewId,
       rating,
       reviewContent
+    );
+
+    if (!updatedReview) {
+      return res.status(404).json({ message: "Review không tồn tại" });
+    }
+
+    res.status(200).json({
+      message: "Cập nhật review thành công",
+      updatedReview,
+    });
+  } catch (error) {
+    console.error("Error in review:", error);
+    res.status(500).json({ message: "Lỗi khi cập nhật review" });
+  }
+};
+
+exports.publicReview = async (req, res) => {
+  try {
+    const { reviewId, newReviewStatus } = req.body;
+
+    const updatedReview = await productService.publicReview(
+      reviewId,
+      newReviewStatus
     );
 
     if (!updatedReview) {

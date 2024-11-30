@@ -20,6 +20,8 @@ exports.getVoucher = async (req, res) => {
 exports.insertVoucher = async (req, res) => {
   try {
     const {
+      limitedDate,
+      voucherQuantity,
       voucherType,
       voucherPoint,
       expirationDate,
@@ -31,7 +33,9 @@ exports.insertVoucher = async (req, res) => {
       totalToUse,
     } = req.body;
 
-    const { success, message } = await voucherServices.insertVoucher(
+    const { success, message } = await voucherServices.insertVoucher({
+      limitedDate,
+      voucherQuantity,
       voucherType,
       voucherPoint,
       expirationDate,
@@ -40,8 +44,8 @@ exports.insertVoucher = async (req, res) => {
       flatDiscountAmount,
       salePercent,
       shippingDiscountAmount,
-      totalToUse
-    );
+      totalToUse,
+    });
 
     if (!success) {
       return res.status(401).json({
@@ -97,6 +101,8 @@ exports.editVoucher = async (req, res) => {
     newVoucherDescription,
     newFlatDiscountAmount,
     newShippingDiscountAmount,
+    newVoucherQuantity,
+    newLimitedDate,
   } = req.body;
 
   try {
@@ -114,8 +120,12 @@ exports.editVoucher = async (req, res) => {
       newVoucherPoint,
       newVoucherDescription,
       newFlatDiscountAmount,
-      newShippingDiscountAmount
+      newShippingDiscountAmount,
+      newVoucherQuantity,
+      newLimitedDate
     );
+
+    console.log(newLimitedDate);
 
     if (!updatedVoucher) {
       return res.status(404).json({ message: "Voucher not found." });

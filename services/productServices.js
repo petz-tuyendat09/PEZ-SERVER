@@ -598,6 +598,9 @@ exports.lowstockNofi = async ({ productId }) => {
 exports.queryReviews = async ({
   userId,
   ratingStatus,
+  productId,
+  publicStatus,
+  reviewId,
   sort,
   star,
   page = 1,
@@ -605,10 +608,34 @@ exports.queryReviews = async ({
 }) => {
   try {
     const filter = {};
+
+    // Xử lý ratingStatus
     if (ratingStatus === "yes") {
-      filter.rating = { $ne: null }; // rating khác null
+      filter.rating = { $ne: null }; // Rating khác null
     } else if (ratingStatus === "no") {
-      filter.rating = null; // rating bằng null
+      filter.rating = null; // Rating bằng null
+    } else {
+      filter.rating = { $ne: null }; // Mặc định tìm rating khác null
+    }
+
+    if (userId) {
+      filter.userId = userId;
+    }
+
+    if (publicStatus) {
+      filter.publicStatus = publicStatus;
+    }
+
+    if (productId) {
+      filter.productId = productId;
+    }
+
+    if (reviewId) {
+      filter._id = reviewId;
+    }
+
+    if (star) {
+      filter.rating = star;
     }
 
     const sortOptions = { createdAt: -1 };
@@ -616,13 +643,6 @@ exports.queryReviews = async ({
       sortOptions.rating = 1;
     } else if (sort === "desc") {
       sortOptions.rating = -1;
-    }
-
-    if (userId) {
-      filter.userId = userId;
-    }
-    if (star) {
-      filter.rating = star;
     }
 
     const skip = (page - 1) * limit;
@@ -649,7 +669,6 @@ exports.queryReviews = async ({
 
 exports.updateReview = async (reviewId, rating, reviewContent) => {
   try {
-    // Tìm và cập nhật review
     const updatedReview = await ReviewProducts.findByIdAndUpdate(
       reviewId,
       {
@@ -662,6 +681,23 @@ exports.updateReview = async (reviewId, rating, reviewContent) => {
     return updatedReview;
   } catch (error) {
     console.error("Error in updateReview:", error);
+    throw error;
+  }
+};
+
+exports.publicReview = async (reviewId, newReviewStatus) => {
+  try {
+    const updatedReview = await ReviewProducts.findByIdAndUpdate(
+      reviewId,
+      {
+        publicStatus: newReviewStatus,
+      },
+      { new: true }
+    );
+
+    return updatedReview;
+  } catch (error) {
+    console.error("Error in publicReview:", error);
     throw error;
   }
 };
