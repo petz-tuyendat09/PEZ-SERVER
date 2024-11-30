@@ -81,8 +81,14 @@ const orderSchema = new Schema(
         "DELIVERING",
         "DELIVERED",
         "CANCELLED",
+        "REFUND",
       ],
       default: "PENDING",
+    },
+    transIDMomo: {
+      type: String,
+      required: false,
+      default: undefined,
     },
   },
   { timestamps: true }

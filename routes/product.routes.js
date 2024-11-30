@@ -21,6 +21,7 @@ router.delete("/delete-product", productController.deleteProduct);
 router.post("/lowstock-nofi", productController.lowstockNofi);
 router.get("/get-review", productController.getReview);
 router.put("/review", productController.review);
+router.put("/public-review", productController.publicReview);
 
 router.put(
   "/edit-product",

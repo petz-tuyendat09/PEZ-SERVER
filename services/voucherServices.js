@@ -31,6 +31,12 @@ exports.queryVoucher = async ({
       query._id = voucherId;
     }
 
+    // Xóa các voucher đã hết hạn
+    const now = new Date();
+    await Voucher.deleteMany({
+      limitedDate: { $ne: null, $lt: now }, // Các voucher có limitedDate và đã hết hạn
+    });
+
     // Lấy tổng số bản ghi dựa trên bộ lọc
     const totalItems = await Voucher.countDocuments(query);
 
@@ -95,8 +101,16 @@ const checkExistingVoucher = async (
   return { exists: false };
 };
 
-// Function to insert a voucher
-exports.insertVoucher = async (
+const parseLimitedDate = (limitedDate) => {
+  if (limitedDate && limitedDate.day && limitedDate.year && limitedDate.month) {
+    return new Date(limitedDate.year, limitedDate.month - 1, limitedDate.day);
+  }
+  return null;
+};
+
+exports.insertVoucher = async ({
+  limitedDate,
+  voucherQuantity,
   voucherType,
   voucherPoint,
   expirationDate,
@@ -105,9 +119,10 @@ exports.insertVoucher = async (
   flatDiscountAmount,
   salePercent,
   shippingDiscountAmount,
-  totalToUse
-) => {
+  totalToUse,
+}) => {
   try {
+    // Kiểm tra voucher đã tồn tại hay chưa
     const checkResult = await checkExistingVoucher(
       voucherType,
       salePercent,
@@ -127,16 +142,18 @@ exports.insertVoucher = async (
       }
     }
 
+    // Chuẩn bị dữ liệu voucher
     const voucherData = {
       voucherType,
       voucherPoint,
       voucherDescription,
+      limitedDate: parseLimitedDate(limitedDate), // Chuyển limitedDate thành Date
     };
 
     if (expirationDate !== null && expirationDate !== undefined) {
       voucherData.expirationDate = expirationDate;
     }
-    if (totalToUse !== null && totalToUse !== "") {
+    if (totalToUse !== null && totalToUse !== undefined) {
       voucherData.totalToUse = totalToUse;
     }
     if (maxRedemption !== null && maxRedemption !== undefined) {
@@ -154,16 +171,17 @@ exports.insertVoucher = async (
     ) {
       voucherData.shippingDiscountAmount = shippingDiscountAmount;
     }
-    if (totalToUse !== null && totalToUse !== undefined) {
-      voucherData.totalToUse = totalToUse;
+    if (voucherQuantity !== null && voucherQuantity !== undefined) {
+      voucherData.voucherQuantity = voucherQuantity;
     }
 
+    // Tạo mới và lưu voucher
     const newVoucher = new Voucher(voucherData);
     await newVoucher.save();
 
     return { success: true, message: "Thêm voucher thành công" };
   } catch (error) {
-    console.log("Error in voucherService:", error);
+    console.error("Error in voucherService:", error);
     throw new Error("Error inserting voucher");
   }
 };
@@ -264,7 +282,9 @@ exports.editVoucher = async (
   newVoucherPoint,
   newVoucherDescription,
   newFlatDiscountAmount,
-  newShippingDiscountAmount
+  newShippingDiscountAmount,
+  newVoucherQuantity,
+  newLimitedDate
 ) => {
   try {
     const updateData = prepareUpdateData(
@@ -288,6 +308,18 @@ exports.editVoucher = async (
       updateData.dataToSet.totalToUse = newTotalToUse;
     } else {
       updateData.dataToUnset.totalToUse = "";
+    }
+
+    if (newVoucherQuantity !== "") {
+      updateData.dataToSet.voucherQuantity = newVoucherQuantity;
+    } else {
+      updateData.dataToUnset.voucherQuantity = "";
+    }
+
+    if (newLimitedDate !== null) {
+      updateData.dataToSet.limitedDate = newLimitedDate;
+    } else {
+      updateData.dataToUnset.limitedDate = "";
     }
 
     // Cập nhật voucher trong database
@@ -399,7 +431,6 @@ exports.getVoucherCanExchange = async (userPoint, page, limit) => {
 
 exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
   try {
-    // Find the user by their ID
     const user = await User.findById(userId);
     if (!user) {
       return { success: false, message: "Không tìm thấy User" };
@@ -412,7 +443,6 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
       };
     }
 
-    // Find the voucher by its ID
     const voucher = await Voucher.findById(voucherId);
     if (!voucher) {
       return {
@@ -421,7 +451,14 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
       };
     }
 
-    // Check if the user already owns this voucher in UserVoucher
+    // Kiểm tra số lượng voucher có khả dụng
+    if (voucher.voucherQuantity === 0) {
+      return {
+        success: false,
+        message: "Voucher đã hết, vui lòng thử lại sau",
+      };
+    }
+
     const userVoucher = await UserVoucher.findOne({ userId });
 
     if (userVoucher) {
@@ -430,7 +467,6 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
       );
 
       if (existingVoucher) {
-        // Check if the user already owns the maximum allowed for this voucher
         if (existingVoucher.redemptionCount >= voucher.maxRedemption) {
           return {
             success: false,
@@ -438,7 +474,6 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
           };
         }
 
-        // Check if the quantity exceeds the limit of 10
         if (existingVoucher.quantity >= 10) {
           return {
             success: false,
@@ -446,14 +481,12 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
           };
         }
 
-        // Update quantity, redemption count, and expiration date
         existingVoucher.quantity += 1;
         existingVoucher.redemptionCount += 1;
         existingVoucher.expirationDate = new Date(
           Date.now() + 2 * 24 * 60 * 60 * 1000 // Extend expiration date by 2 days
         );
       } else {
-        // Add a new voucher entry if not existing
         userVoucher.vouchers.push({
           voucherId,
           quantity: 1,
@@ -462,10 +495,8 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
         });
       }
 
-      // Save updated UserVoucher
       await userVoucher.save();
     } else {
-      // If no UserVoucher exists for the user, create a new one
       const newUserVoucher = new UserVoucher({
         userId,
         vouchers: [
@@ -473,7 +504,7 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
             voucherId,
             quantity: 1,
             redemptionCount: 1,
-            expirationDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days expiration
+            expirationDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
           },
         ],
       });
@@ -481,7 +512,11 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
       await newUserVoucher.save();
     }
 
-    // Deduct voucher points from user
+    // Giảm số lượng voucher khả dụng
+    voucher.voucherQuantity -= 1;
+    await voucher.save();
+
+    // Giảm điểm user
     user.userPoint -= voucherPoint;
     await user.save();
 

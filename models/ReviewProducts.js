@@ -19,6 +19,16 @@ const productReviewSchema = new Schema(
       type: String,
       default: null,
     },
+    reviewContent: {
+      type: String,
+      required: false,
+      default: null,
+    },
+    publicStatus: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
     productId: {
       type: ObjectId,
       required: true,
