@@ -24,19 +24,25 @@ async function getBookingStatistics({ startDate, endDate }) {
         let bookingsDone = 0;
         let bookingsCancelled = 0;
 
+        const monthlyRevenue = Array(12).fill(0); // Tạo mảng 12 phần tử, mỗi phần tử đại diện cho một tháng.
+
+
         // Loop through bookings to calculate statistics
         bookings.forEach((booking) => {
+            const month = new Date(booking.bookingDate).getMonth(); // Lấy tháng từ ngày tạo đơn hàng.
+
             if (booking.bookingStatus === "Canceled") {
                 bookingsCancelled += 1;
             }
             if (booking.bookingStatus === "Done") {
                 bookingsDone += 1;
                 totalBooking += booking.totalPrice;
+                monthlyRevenue[month] += booking.totalPrice; // Cộng doanh thu vào tháng tương ứng.
             }
         });
 
         // Return the calculated statistics
-        return { totalBooking, bookingsDone, bookingsCancelled };
+        return { totalBooking, bookingsDone, bookingsCancelled, monthlyRevenue };
 
     } catch (error) {
         console.error(error);
