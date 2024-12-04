@@ -125,8 +125,6 @@ exports.editVoucher = async (req, res) => {
       newLimitedDate
     );
 
-    console.log(newLimitedDate);
-
     if (!updatedVoucher) {
       return res.status(404).json({ message: "Voucher not found." });
     }
