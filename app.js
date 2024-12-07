@@ -35,7 +35,7 @@ const statsOrderRouter = require("./routes/stats.order.routes");
 const statsBookingRouter = require("./routes/stats.booking.routes");
 const paymentRouter = require("./routes/payment.routes");
 const statsRouter = require("./routes/stats.routes");
-
+const shopRouter = require("./routes/shop.routes");
 require("dotenv").config({ path: ".env" });
 
 // Create express app
@@ -90,7 +90,7 @@ app.use("/api/voucher", voucherRouter);
 app.use("/api/services", servicesRouter);
 app.use("/api/booking", bookingRouter);
 app.use("/api/orders", orderRouter);
-
+app.use("/api/shop", shopRouter);
 app.use("/api/orderStats", statsOrderRouter);
 app.use("/api/bookingStats", statsBookingRouter);
 
