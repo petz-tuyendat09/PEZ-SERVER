@@ -43,7 +43,10 @@ exports.queryBooking = async (
 
     const skip = (page - 1) * limit;
 
-    let bookingQuery = Booking.find(query).skip(skip).limit(parseInt(limit));
+    let bookingQuery = Booking.find(query)
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
     // Populate services only when querying by bookingId
     if (bookingId) {
@@ -226,6 +229,28 @@ exports.doneBookingById = async (bookingId) => {
     return { found: true, alreadyDone: false };
   } catch (error) {
     console.error("Error in cancelBookingById:", error);
+    return { found: false, error: true };
+  }
+};
+
+exports.confirmBookingById = async (bookingId) => {
+  try {
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return { found: false };
+    }
+
+    if (booking.bookingStatus === "Confirm") {
+      return { alreadyDone: true };
+    }
+
+    booking.bookingStatus = "Confirm";
+    await booking.save();
+
+    return { found: true, alreadyDone: false };
+  } catch (error) {
+    console.error("Error in confirmBookingById:", error);
     return { found: false, error: true };
   }
 };

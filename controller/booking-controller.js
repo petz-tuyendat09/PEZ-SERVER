@@ -151,6 +151,32 @@ exports.doneBooking = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+exports.confirmBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ message: "Booking Id là bắt buco65" });
+    }
+
+    const bookingResult = await bookingService.confirmBookingById(bookingId);
+
+    if (!bookingResult.found) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (bookingResult.alreadyCanceled) {
+      return res
+        .status(404)
+        .json({ message: "Lịch đã được cập nhật trạng thái" });
+    }
+
+    return res.status(200).json({ message: "Cập nhật trạng thái thành công" });
+  } catch (error) {
+    console.error("Error in cancelBooking:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 exports.reviewBooking = async (req, res) => {
   try {
