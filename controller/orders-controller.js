@@ -78,7 +78,7 @@ exports.insertOrders = async (req, res) => {
         (option) => option.name === item.productOption
       );
       if (!option || option.productQuantity < item.productQuantity) {
-        throw new Error(`Insufficient quantity for product: ${item.productId}`);
+        throw new Error(`Sản phẩm ${item.productName} đã hết hàng `);
       }
 
       option.productQuantity -= item.productQuantity;
