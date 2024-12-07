@@ -33,7 +33,7 @@ const bookingSchema = new Schema({
   },
   bookingStatus: {
     type: String,
-    enum: ["Booked", "Done", "Canceled"],
+    enum: ["Booked", "Done", "Confirm", "Canceled"],
     default: "Booked",
   },
   reviewStatus: {

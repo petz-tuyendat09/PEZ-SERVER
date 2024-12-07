@@ -451,6 +451,8 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
       };
     }
 
+    console.log(voucher.voucherQuantity);
+
     // Kiểm tra số lượng voucher có khả dụng
     if (voucher.voucherQuantity === 0) {
       return {
@@ -513,7 +515,9 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
     }
 
     // Giảm số lượng voucher khả dụng
-    voucher.voucherQuantity -= 1;
+    if (voucher.voucherQuantity) {
+      voucher.voucherQuantity -= 1;
+    }
     await voucher.save();
 
     // Giảm điểm user
