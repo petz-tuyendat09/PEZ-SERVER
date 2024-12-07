@@ -6,6 +6,7 @@ const UserServices = require("../services/userServices");
 const Cart = require("../models/Cart");
 const { sendBookingEmail } = require("../utils/sendOrderEmail");
 const { sendNewOrderEmail } = require("../utils/sendNewOrderEmail");
+const { lowstockNofi } = require("../services/productServices");
 
 exports.getOrderByUserId = async (req, res) => {
   try {
@@ -64,7 +65,6 @@ exports.insertOrders = async (req, res) => {
 
     const savedOrder = await OrderModel.save();
 
-    // Cập nhật số lượng sản phẩm
     const productUpdates = products.map(async (item) => {
       const product = await Product.findOne({
         _id: item.productId,
@@ -82,6 +82,17 @@ exports.insertOrders = async (req, res) => {
       }
 
       option.productQuantity -= item.productQuantity;
+
+      // Kiểm tra tổng số lượng sản phẩm sau khi cập nhật
+      const totalQuantity = product.productOption.reduce(
+        (sum, option) => sum + option.productQuantity,
+        0
+      );
+
+      if (totalQuantity < 20) {
+        lowstockNofi({ productId: product._id });
+      }
+
       await product.save();
     });
 
