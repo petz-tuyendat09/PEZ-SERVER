@@ -11,7 +11,6 @@ const ReviewProducts = require("../models/ReviewProducts.js");
  * Tìm kiếm sản phẩm dựa trên các tiêu chí khác nhau
  * @param {object} filters - Các tiêu chí tìm kiếm sản phẩm
  * @param {string} filters.productCategory - Tên danh mục sản phẩm
- * @param {string} filters.productSubcategory - Tên các danh mục con của sản phẩm
  * @param {string} filters.productName - Tên sản phẩm
  * @param {number} filters.salePercent - Phần trăm giảm giá
  * @param {string} filters.productStatus - Trạng thái sản phẩm ("default" hoặc "lastest")
@@ -22,7 +21,6 @@ const ReviewProducts = require("../models/ReviewProducts.js");
 exports.queryProducts = async ({
   productCategory,
   productSlug,
-  productSubCategory,
   productName,
   salePercent,
   productStatus = "default",
@@ -52,13 +50,6 @@ exports.queryProducts = async ({
     if (productCategory) {
       const categoriesArray = productCategory.split(",").map((id) => id.trim());
       query.productCategory = { $in: categoriesArray };
-    }
-
-    if (productSubCategory) {
-      const subCategoriesArray = productSubCategory
-        .split(",")
-        .map((id) => id.trim());
-      query.productSubCategory = { $in: subCategoriesArray };
     }
 
     if (productSlug) {
@@ -102,7 +93,6 @@ exports.queryProducts = async ({
             _id: "$_id",
             productName: { $first: "$productName" },
             productCategory: { $first: "$productCategory" },
-            productSubCategory: { $first: "$productSubCategory" },
             productSlug: { $first: "$productSlug" },
             productOption: { $push: "$productOption" },
             salePercent: { $first: "$salePercent" },
@@ -224,7 +214,6 @@ exports.checkDuplicatedEditProduct = async (productId, productName) => {
  * @param {number} salePercent - Phần trăm giảm giá
  * @param {number} productQuantity - Số lượng sản phẩm
  * @param {string} productCategory - Tên danh mục sản phẩm
- * @param {string} productSubcategory - Tên các danh mục con của sản phẩm
  * @param {string} productDescription - Mô tả ngắn sản phẩm
  * @param {string} productDetailDescription - Mô tả sản phẩm chi tiết như chất liệu, dinh dưỡng
  * @param {string} productOption - Tùy chọn của sản phẩm, cân nặng, màu sắc
@@ -236,7 +225,6 @@ exports.insertProduct = async ({
   productName,
   salePercent,
   productCategory,
-  productSubcategory,
   productDescription,
   productDetailDescription,
   productOption, // productOption now contains price and quantity for each option
@@ -296,7 +284,6 @@ exports.insertProduct = async ({
       }),
       productDetailDescription: newProductDetailDescription?._id || null,
       productCategory: productCategory,
-      productSubCategory: productSubcategory,
     });
 
     // Save new product to the database
@@ -420,7 +407,6 @@ exports.deleteProductsByCategory = async (categoryId) => {
  * @param {number} newProductInfo.salePercent - Phần trăm giảm giá mới
  * @param {number} newProductInfo.productQuantity - Số lượng sản phẩm mới
  * @param {string} newProductInfo.productCategory - ID danh mục sản phẩm mới
- * @param {string} newProductInfo.productSubcategory - ID danh mục con của sản phẩm mới
  * @param {string} newProductInfo.productDescription - Mô tả ngắn về sản phẩm mới
  * @param {string[]} newProductInfo.productOption - Các tùy chọn cho sản phẩm (ví dụ: trọng lượng, kích thước)
  * @param {string} newProductInfo.productDetailDescription - Mô tả chi tiết về sản phẩm (ví dụ: chất liệu, dinh dưỡng)
@@ -439,7 +425,6 @@ exports.editProduct = async ({
   productName,
   salePercent,
   productCategory,
-  productSubcategory,
   productDescription,
   productOption,
   productDetailDescription,
@@ -524,7 +509,6 @@ exports.editProduct = async ({
           };
         }),
         productCategory: productCategory,
-        productSubCategory: productSubcategory,
       },
       { new: true }
     ).then(() => console.log("Sản phẩm đã được cập nhật"));
@@ -607,60 +591,62 @@ exports.queryReviews = async ({
   limit = 10,
 }) => {
   try {
-    const filter = {};
-
-    // Xử lý ratingStatus
-    if (ratingStatus === "yes") {
-      filter.rating = { $ne: null }; // Rating khác null
-    } else if (ratingStatus === "no") {
-      filter.rating = null; // Rating bằng null
-    } else {
-      filter.rating = { $ne: null }; // Mặc định tìm rating khác null
-    }
-
-    if (userId) {
-      filter.userId = userId;
-    }
-
-    if (publicStatus) {
-      filter.publicStatus = publicStatus;
-    }
-
     if (productId) {
-      filter.productId = productId;
+      const filter = {};
+
+      // Xử lý ratingStatus
+      if (ratingStatus === "yes") {
+        filter.rating = { $ne: null }; // Rating khác null
+      } else if (ratingStatus === "no") {
+        filter.rating = null; // Rating bằng null
+      } else {
+        filter.rating = { $ne: null }; // Mặc định tìm rating khác null
+      }
+
+      if (userId) {
+        filter.userId = userId;
+      }
+
+      if (publicStatus) {
+        filter.publicStatus = publicStatus;
+      }
+
+      if (productId) {
+        filter.productId = productId;
+      }
+
+      if (reviewId) {
+        filter._id = reviewId;
+      }
+
+      if (star) {
+        filter.rating = star;
+      }
+
+      const sortOptions = { createdAt: -1 };
+      if (sort === "asc") {
+        sortOptions.rating = 1;
+      } else if (sort === "desc") {
+        sortOptions.rating = -1;
+      }
+
+      const skip = (page - 1) * limit;
+
+      const reviews = await ReviewProducts.find(filter)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit)
+        .populate("userId", "userEmail")
+        .populate("productId", "productSlug");
+
+      const totalReviews = await ReviewProducts.countDocuments(filter);
+
+      return {
+        reviews,
+        page,
+        totalPages: Math.ceil(totalReviews / limit),
+      };
     }
-
-    if (reviewId) {
-      filter._id = reviewId;
-    }
-
-    if (star) {
-      filter.rating = star;
-    }
-
-    const sortOptions = { createdAt: -1 };
-    if (sort === "asc") {
-      sortOptions.rating = 1;
-    } else if (sort === "desc") {
-      sortOptions.rating = -1;
-    }
-
-    const skip = (page - 1) * limit;
-
-    const reviews = await ReviewProducts.find(filter)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit)
-      .populate("userId", "userEmail")
-      .populate("productId", "productSlug");
-
-    const totalReviews = await ReviewProducts.countDocuments(filter);
-
-    return {
-      reviews,
-      page,
-      totalPages: Math.ceil(totalReviews / limit),
-    };
   } catch (error) {
     console.error("Error in queryReviews:", error);
     throw error;

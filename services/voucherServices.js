@@ -316,20 +316,23 @@ exports.editVoucher = async (
       updateData.dataToUnset.voucherQuantity = "";
     }
 
-    console.log(newLimitedDate);
-
-    if (newLimitedDate !== null) {
-      if (newLimitedDate.day && newLimitedDate.month && newLimitedDate.year) {
-        const formattedDate = new Date(
-          newLimitedDate.year,
-          newLimitedDate.month - 1,
-          newLimitedDate.day
+    if (newLimitedDate && typeof newLimitedDate === "object") {
+      const { day, month, year } = newLimitedDate;
+      if (
+        day !== 0 &&
+        month !== 0 &&
+        year !== 0 &&
+        day !== null &&
+        month !== null &&
+        year !== null
+      ) {
+        updateData.dataToSet.limitedDate = new Date(
+          Date.UTC(year, month - 1, day)
         );
-        updateData.dataToSet.limitedDate = formattedDate;
       } else {
-        throw new Error("Invalid date format for limitedDate.");
+        updateData.dataToUnset.limitedDate = "";
       }
-    } else {
+    } else if (newLimitedDate === null) {
       updateData.dataToUnset.limitedDate = "";
     }
 

@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const Order = require("../models/Order");
+
 const UserVoucher = require("../models/UserVoucher");
 const bcrypt = require("bcrypt");
 
@@ -34,32 +36,107 @@ const getAllUsers = async () => {
   }
 };
 
+// const getAllUsersPaginate = async (page = 1, limit = 10, filters = {}) => {
+//   try {
+//     // Tính toán số lượng tài liệu cần bỏ qua
+//     const skip = (page - 1) * limit;
+
+//     // Tạo điều kiện tìm kiếm dựa trên filters
+//     const query = {};
+//     if (filters.userRole) {
+//       query.userRole = filters.userRole;
+//     }
+
+//     if (filters.userEmail) {
+//       query.userEmail = { $regex: filters.userEmail, $options: "i" }; // Tìm kiếm không phân biệt chữ hoa chữ thường
+//     }
+
+//     // Lấy danh sách người dùng với điều kiện và phân trang
+//     const users = await User.find(query).skip(skip).limit(limit);
+
+//     // Đếm tổng số lượng người dùng phù hợp với điều kiện
+//     const totalUsers = await User.countDocuments(query);
+
+//     return {
+//       success: true,
+//       data: users,
+//       currentPage: page,
+//       totalPages: Math.ceil(totalUsers / limit),
+//     };
+//   } catch (error) {
+//     return { success: false, message: error.message };
+//   }
+// };
+
 const getAllUsersPaginate = async (page = 1, limit = 10, filters = {}) => {
   try {
-    // Tính toán số lượng tài liệu cần bỏ qua
     const skip = (page - 1) * limit;
 
-    // Tạo điều kiện tìm kiếm dựa trên filters
     const query = {};
     if (filters.userRole) {
       query.userRole = filters.userRole;
     }
-    if (filters.username) {
-      query.username = { $regex: filters.username, $options: "i" }; // Tìm kiếm không phân biệt chữ hoa chữ thường
-    }
+
     if (filters.userEmail) {
-      query.userEmail = { $regex: filters.userEmail, $options: "i" }; // Tìm kiếm không phân biệt chữ hoa chữ thường
+      query.userEmail = { $regex: filters.userEmail, $options: "i" };
     }
 
-    // Lấy danh sách người dùng với điều kiện và phân trang
-    const users = await User.find(query).skip(skip).limit(limit);
-
-    // Đếm tổng số lượng người dùng phù hợp với điều kiện
+    const users = await User.find(query).skip(skip).limit(limit).lean();
     const totalUsers = await User.countDocuments(query);
+
+    if (users.length === 0) {
+      return {
+        success: true,
+        data: [],
+        currentPage: page,
+        totalPages: Math.ceil(totalUsers / limit),
+      };
+    }
+
+    const userIds = users.map((u) => u._id);
+
+    const currentMonth = new Date();
+    currentMonth.setDate(1);
+    const nextMonth = new Date(currentMonth);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    const cancelledOrders = await Order.aggregate([
+      {
+        $match: {
+          userId: { $in: userIds },
+          orderStatus: "CANCELLED",
+          createdAt: { $gte: currentMonth, $lt: nextMonth },
+        },
+      },
+      {
+        $group: {
+          _id: "$userId",
+          cancelCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const cancelCountMap = {};
+    cancelledOrders.forEach((item) => {
+      cancelCountMap[item._id.toString()] = item.cancelCount;
+    });
+
+    const usersWithCancelCount = users.map((user) => ({
+      ...user,
+      cancelCount: cancelCountMap[user._id.toString()] || 0,
+    }));
+
+    await Promise.all(
+      usersWithCancelCount.map(async (user) => {
+        if (user.cancelCount > 5 && !user.bannedUser) {
+          await User.findByIdAndUpdate(user._id, { bannedUser: true });
+        }
+      })
+    );
 
     return {
       success: true,
-      data: users,
+      data: usersWithCancelCount,
       currentPage: page,
       totalPages: Math.ceil(totalUsers / limit),
     };
@@ -181,32 +258,37 @@ const getVoucherHeld = async (
 
 const decreaseUserVoucher = async (userId, voucherId) => {
   try {
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new Error("User not found");
+    // Tìm bảng Voucher dựa trên userId
+    const userVouchers = await UserVoucher.findOne({ userId });
+    if (!userVouchers) {
+      throw new Error("User vouchers not found");
     }
 
-    const voucherIndex = user.userVoucher.findIndex(
+    // Tìm voucher trong danh sách
+    const voucherIndex = userVouchers.vouchers.findIndex(
       (voucher) => voucher.voucherId.toString() === voucherId
     );
 
     if (voucherIndex === -1) {
-      throw new Error("Voucher not found in user's vouchers");
+      throw new Error("Voucher not found for the user");
     }
 
-    const voucherItem = user.userVoucher[voucherIndex];
+    const voucherItem = userVouchers.vouchers[voucherIndex];
 
+    // Giảm số lượng hoặc xóa voucher
     if (voucherItem.quantity > 1) {
       voucherItem.quantity -= 1;
     } else {
-      user.userVoucher.splice(voucherIndex, 1);
+      userVouchers.vouchers.splice(voucherIndex, 1);
     }
 
-    await user.save();
+    // Lưu lại thay đổi
+    await userVouchers.save();
     console.log("Voucher quantity updated successfully");
+    return { success: true, message: "Voucher quantity updated" };
   } catch (error) {
     console.error("Error in decreaseUserVoucher:", error.message);
-    throw error;
+    return { success: false, message: error.message };
   }
 };
 

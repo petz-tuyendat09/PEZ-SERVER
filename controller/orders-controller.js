@@ -6,6 +6,7 @@ const UserServices = require("../services/userServices");
 const Cart = require("../models/Cart");
 const { sendBookingEmail } = require("../utils/sendOrderEmail");
 const { sendNewOrderEmail } = require("../utils/sendNewOrderEmail");
+const { lowstockNofi } = require("../services/productServices");
 
 exports.getOrderByUserId = async (req, res) => {
   try {
@@ -47,6 +48,18 @@ exports.insertOrders = async (req, res) => {
       orderStatus,
     } = req.body;
 
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.bannedUser === true) {
+      return res.status(502).json({
+        message: "Tài khoản của bạn đã bị khóa, không thể thực hiện.",
+      });
+    }
+
     const OrderModel = new Order({
       customerName,
       customerPhone,
@@ -64,7 +77,6 @@ exports.insertOrders = async (req, res) => {
 
     const savedOrder = await OrderModel.save();
 
-    // Cập nhật số lượng sản phẩm
     const productUpdates = products.map(async (item) => {
       const product = await Product.findOne({
         _id: item.productId,
@@ -78,10 +90,23 @@ exports.insertOrders = async (req, res) => {
         (option) => option.name === item.productOption
       );
       if (!option || option.productQuantity < item.productQuantity) {
-        throw new Error(`Sản phẩm ${item.productName} đã hết hàng `);
+
+        throw new Error(`Sản phẩm ${item.productName} đã hết hàng`);
+
       }
 
       option.productQuantity -= item.productQuantity;
+
+      // Kiểm tra tổng số lượng sản phẩm sau khi cập nhật
+      const totalQuantity = product.productOption.reduce(
+        (sum, option) => sum + option.productQuantity,
+        0
+      );
+
+      if (totalQuantity < 20) {
+        lowstockNofi({ productId: product._id });
+      }
+
       await product.save();
     });
 
@@ -103,11 +128,9 @@ exports.insertOrders = async (req, res) => {
         { new: true }
       );
 
-      // Giảm số lượng voucher của người dùng
       if (voucherId) {
         await UserServices.decreaseUserVoucher(user._id, savedOrder.voucherId);
       }
-      // Reset cartItems về mảng rỗng
       await Cart.findByIdAndUpdate(user.userCart, { cartItems: [] });
     }
     sendBookingEmail(customerEmail, savedOrder, products);

@@ -38,11 +38,7 @@ const productSchema = new Schema({
     ref: "Categories",
     required: true,
   },
-  productSubCategory: {
-    type: ObjectId,
-    required: true,
-    ref: "Subcategories",
-  },
+
   productDescription: {
     type: String,
     required: false,
@@ -62,7 +58,7 @@ const productSchema = new Schema({
     ref: "ProductDetailDescription",
   },
   productRating: { type: Number, default: 0 },
-  ratingCount: { type: Number, default: 0 }
+  ratingCount: { type: Number, default: 0 },
 });
 
 productSchema.index({ productName: 1 });
