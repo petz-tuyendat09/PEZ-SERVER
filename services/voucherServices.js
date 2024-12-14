@@ -318,7 +318,6 @@ exports.editVoucher = async (
 
     if (newLimitedDate && typeof newLimitedDate === "object") {
       const { day, month, year } = newLimitedDate;
-
       if (
         day !== 0 &&
         month !== 0 &&
