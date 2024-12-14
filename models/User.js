@@ -25,7 +25,7 @@ const userSchema = new Schema({
 
     default: "",
   },
-  userActive: {
+  bannedUser: {
     type: Boolean,
     default: false,
     required: true,
@@ -68,18 +68,6 @@ const userSchema = new Schema({
     ref: "Cart",
     required: true,
   },
-  userShift: [
-    {
-      startTime: {
-        type: String,
-        required: false,
-      },
-      endTime: {
-        type: String,
-        required: false,
-      },
-    },
-  ],
 });
 
 module.exports = mongoose.model("User", userSchema);

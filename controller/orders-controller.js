@@ -48,6 +48,18 @@ exports.insertOrders = async (req, res) => {
       orderStatus,
     } = req.body;
 
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.bannedUser === true) {
+      return res.status(502).json({
+        message: "Tài khoản của bạn đã bị khóa, không thể thực hiện.",
+      });
+    }
+
     const OrderModel = new Order({
       customerName,
       customerPhone,
@@ -78,7 +90,7 @@ exports.insertOrders = async (req, res) => {
         (option) => option.name === item.productOption
       );
       if (!option || option.productQuantity < item.productQuantity) {
-        throw new Error(`Insufficient quantity for product: ${item.productId}`);
+        throw new Error(`Sản phẩm ${item.productName} đã hết hàng`);
       }
 
       option.productQuantity -= item.productQuantity;
@@ -114,11 +126,9 @@ exports.insertOrders = async (req, res) => {
         { new: true }
       );
 
-      // Giảm số lượng voucher của người dùng
       if (voucherId) {
         await UserServices.decreaseUserVoucher(user._id, savedOrder.voucherId);
       }
-      // Reset cartItems về mảng rỗng
       await Cart.findByIdAndUpdate(user.userCart, { cartItems: [] });
     }
     sendBookingEmail(customerEmail, savedOrder, products);

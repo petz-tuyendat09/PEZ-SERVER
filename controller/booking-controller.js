@@ -82,7 +82,7 @@ exports.createBooking = async (req, res) => {
       bookingHours,
     } = req.body;
 
-    await bookingService.createBooking(
+    const { success, message } = await bookingService.createBooking(
       userId,
       customerName,
       customerPhone,
@@ -92,7 +92,12 @@ exports.createBooking = async (req, res) => {
       bookingDate,
       bookingHours
     );
-    res.status(200).json({ message: "Đặt lịch thành công" });
+
+    if (success) {
+      res.status(200).json({ message: message });
+    } else {
+      res.status(400).json({ message: message });
+    }
   } catch (error) {
     console.log("Error in bookingController:", error);
   }

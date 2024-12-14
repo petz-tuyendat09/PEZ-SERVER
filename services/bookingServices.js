@@ -142,6 +142,19 @@ exports.createBooking = async (
       return selectedServices[serviceType].serviceId;
     });
 
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.bannedUser === true) {
+      return {
+        success: false,
+        message: "Tài khoản của bạn đã bị khóa, không thể thực hiện.",
+      };
+    }
+
     // Create a new booking object
     const newBooking = new Booking({
       userId: userId,
@@ -177,7 +190,10 @@ exports.createBooking = async (
       bookingHours,
     });
 
-    return true;
+    return {
+      success: true,
+      message: "Đặt lịch thành công.",
+    };
   } catch (error) {
     console.log("Error in bookingServices:", error);
     return false;

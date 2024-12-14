@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const Product = require("../models/Product");
 const productService = require("../services/productServices");
 
@@ -26,7 +27,6 @@ exports.queryProducts = async (req, res) => {
     const filters = {
       productCategory: req.query.productCategory,
       productSlug: req.query.productSlug,
-      productSubCategory: req.query.productSubCategory,
       productName: req.query.productName,
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
@@ -86,7 +86,6 @@ exports.insertProduct = async (req, res) => {
       productName: req.body.productName,
       salePercent: req.body.salePercent,
       productCategory: req.body.productCategory,
-      productSubcategory: req.body.productSubcategory,
       productDescription: req.body.productDescription,
       productOption: req.body.productOption,
       productDetailDescription: req.body.productDetailDescription,
@@ -127,7 +126,6 @@ exports.editProduct = async (req, res) => {
       productName: req.body.productName,
       salePercent: req.body.salePercent,
       productCategory: req.body.productCategory,
-      productSubcategory: req.body.productSubcategory,
       productDescription: req.body.productDescription,
       productOption: req.body.productOption,
       productDetailDescription: req.body.productDetailDescription,
@@ -173,6 +171,11 @@ exports.getReview = async (req, res) => {
       page = 1,
       limit = 10,
     } = req.query;
+
+    if (productId && !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid productId format" });
+    }
+
     const reviewsData = await productService.queryReviews({
       userId,
       ratingStatus,

@@ -316,13 +316,27 @@ exports.editVoucher = async (
       updateData.dataToUnset.voucherQuantity = "";
     }
 
-    if (newLimitedDate !== null) {
-      updateData.dataToSet.limitedDate = newLimitedDate;
-    } else {
+    if (newLimitedDate && typeof newLimitedDate === "object") {
+      const { day, month, year } = newLimitedDate;
+
+      if (
+        day !== 0 &&
+        month !== 0 &&
+        year !== 0 &&
+        day !== null &&
+        month !== null &&
+        year !== null
+      ) {
+        updateData.dataToSet.limitedDate = new Date(
+          Date.UTC(year, month - 1, day)
+        );
+      } else {
+        updateData.dataToUnset.limitedDate = "";
+      }
+    } else if (newLimitedDate === null) {
       updateData.dataToUnset.limitedDate = "";
     }
 
-    // Cập nhật voucher trong database
     const updatedVoucher = await Voucher.findByIdAndUpdate(
       editVoucherId,
       {
