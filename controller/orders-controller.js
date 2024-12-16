@@ -90,9 +90,7 @@ exports.insertOrders = async (req, res) => {
         (option) => option.name === item.productOption
       );
       if (!option || option.productQuantity < item.productQuantity) {
-
         throw new Error(`Sản phẩm ${item.productName} đã hết hàng`);
-
       }
 
       option.productQuantity -= item.productQuantity;
@@ -182,7 +180,7 @@ exports.queryOrders = async (req, res) => {
 
 exports.cancelOrder = async (req, res) => {
   try {
-    const { orderId } = req.body;
+    const { orderId, userId } = req.body;
 
     if (!orderId) {
       return res
@@ -190,7 +188,7 @@ exports.cancelOrder = async (req, res) => {
         .json({ success: false, message: "Order ID is required" });
     }
 
-    const result = await orderServices.cancelOrder(orderId);
+    const result = await orderServices.cancelOrder(orderId, userId);
 
     if (!result.success) {
       return res.status(404).json({ success: false, message: result.message });
@@ -198,7 +196,7 @@ exports.cancelOrder = async (req, res) => {
 
     return res
       .status(200)
-      .json({ success: true, message: "Order canceled successfully" });
+      .json({ success: true, message: "Hủy đơn thành công" });
   } catch (error) {
     console.log(error);
     return res

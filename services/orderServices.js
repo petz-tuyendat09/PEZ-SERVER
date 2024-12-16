@@ -125,13 +125,26 @@ exports.getOrderByOrderId = async (orderId) => {
   }
 };
 
-exports.cancelOrder = async (orderId) => {
+exports.cancelOrder = async (orderId, userId) => {
   try {
     // Tìm đơn hàng
     const order = await Order.findById(orderId);
     if (!order) {
       return { success: false, message: "Order not found" };
     }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const canceledOrderCount = await Order.countDocuments({
+      userId: userId,
+      orderStatus: "CANCELLED",
+      createdAt: {
+        $gte: startOfMonth,
+        $lte: endOfMonth,
+      },
+    });
 
     if (order.orderStatus === "CANCELLED") {
       return { success: false, message: "Order is already cancelled" };
@@ -153,7 +166,15 @@ exports.cancelOrder = async (orderId) => {
     order.orderStatus = "CANCELLED";
     await order.save();
 
-    return { success: true, message: "Order canceled successfully" };
+    if (canceledOrderCount >= 1) {
+      await User.findByIdAndUpdate(userId, { bannedUser: true });
+      return {
+        success: false,
+        message: "Tài khoản của bạn đã bị hạn chế, vì hủy đơn quá nhiều.",
+      };
+    }
+
+    return { success: true, message: "Hủy đơn thành công" };
   } catch (error) {
     console.log(error);
     return {
