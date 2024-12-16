@@ -121,12 +121,16 @@ exports.cancelBooking = async (req, res) => {
     }
 
     if (bookingResult.alreadyCanceled) {
-      return res.status(404).json({ message: "Lịch đã được hủy" });
+      return res.status(404).json({ message: message });
+    }
+    let message = "Lịch đã được hủy";
+    let status = 200;
+    if (bookingResult.banned) {
+      message = "Tài khoản của bạn đã bị hạn chế";
+      status = 500;
     }
 
-    return res
-      .status(200)
-      .json({ message: "Cập nhật trạng thái lịch thành công" });
+    return res.status(status).json({ message: message });
   } catch (error) {
     console.error("Error in cancelBooking:", error);
     return res.status(500).json({ message: "Server error" });

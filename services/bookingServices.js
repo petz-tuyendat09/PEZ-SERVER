@@ -137,10 +137,28 @@ exports.createBooking = async (
   bookingHours
 ) => {
   try {
-    // Extract service IDs from the selectedServices object
-    const serviceIds = Object.keys(selectedServices).map((serviceType) => {
-      return selectedServices[serviceType].serviceId;
+    const today = new Date();
+    const startOfDay = new Date(today.toISOString().split("T")[0]); // 00:00:00 UTC
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setUTCDate(startOfDay.getUTCDate() + 1); // 00:00:00 ngày mai UTC
+
+    const bookingsToday = await Booking.countDocuments({
+      userId: userId,
+      createdAt: {
+        $gte: startOfDay, // >= 2024-10-26T00:00:00.000Z
+        $lt: endOfDay, // < 2024-10-27T00:00:00.000Z
+      },
     });
+
+    console.log(bookingsToday);
+
+    const maxBookingsPerDay = 3; // Giới hạn tối đa số booking mỗi ngày
+    if (bookingsToday >= maxBookingsPerDay) {
+      return {
+        success: false,
+        message: "Bạn đã đạt giới hạn đặt lịch trong ngày hôm nay.",
+      };
+    }
 
     const user = await User.findById(userId);
 
@@ -154,6 +172,11 @@ exports.createBooking = async (
         message: "Tài khoản của bạn đã bị khóa, không thể thực hiện.",
       };
     }
+
+    // Extract service IDs from the selectedServices object
+    const serviceIds = Object.keys(selectedServices).map((serviceType) => {
+      return selectedServices[serviceType].serviceId;
+    });
 
     // Create a new booking object
     const newBooking = new Booking({
@@ -196,7 +219,10 @@ exports.createBooking = async (
     };
   } catch (error) {
     console.log("Error in bookingServices:", error);
-    return false;
+    return {
+      success: false,
+      message: "Có lỗi xảy ra. Vui lòng thử lại sau.",
+    };
   }
 };
 
@@ -212,10 +238,30 @@ exports.cancelBookingById = async (bookingId, userId) => {
       return { alreadyCanceled: true };
     }
 
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const canceledBookingsCount = await Booking.countDocuments({
+      userId: userId,
+      bookingStatus: "Canceled",
+      bookingDate: {
+        $gte: startOfMonth,
+        $lte: endOfMonth,
+      },
+    });
+
+    let banned = false;
+
+    if (canceledBookingsCount >= 5) {
+      await User.findByIdAndUpdate(userId, { bannedUser: true });
+      banned = true;
+    }
+
     booking.bookingStatus = "Canceled";
     await booking.save();
 
-    return { found: true, alreadyCanceled: false };
+    return { found: true, alreadyCanceled: false, banned: banned };
   } catch (error) {
     console.error("Error in cancelBookingById:", error);
     return { found: false, error: true };
