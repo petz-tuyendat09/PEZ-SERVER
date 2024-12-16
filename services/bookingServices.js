@@ -115,7 +115,7 @@ exports.queryBookingUserId = async (
   const skip = (page - 1) * limit;
 
   const [bookings, totalBookings] = await Promise.all([
-    Booking.find(query).skip(skip).limit(parseInt(limit)),
+    Booking.find(query).sort({ _id: -1 }).skip(skip).limit(parseInt(limit)),
     Booking.countDocuments(query),
   ]);
 
@@ -200,22 +200,18 @@ exports.createBooking = async (
   }
 };
 
-exports.cancelBookingById = async (bookingId) => {
+exports.cancelBookingById = async (bookingId, userId) => {
   try {
-    // Find the booking first to check its current status
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
-      // If no booking found, return false to indicate not found
       return { found: false };
     }
 
-    // Check if the booking is already canceled
     if (booking.bookingStatus === "Canceled") {
       return { alreadyCanceled: true };
     }
 
-    // Update the booking status to "Canceled"
     booking.bookingStatus = "Canceled";
     await booking.save();
 

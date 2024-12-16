@@ -105,13 +105,16 @@ exports.createBooking = async (req, res) => {
 
 exports.cancelBooking = async (req, res) => {
   try {
-    const { bookingId } = req.body;
+    const { bookingId, userId } = req.body;
 
     if (!bookingId) {
       return res.status(400).json({ message: "Booking Id là bắt buộc" });
     }
 
-    const bookingResult = await bookingService.cancelBookingById(bookingId);
+    const bookingResult = await bookingService.cancelBookingById(
+      bookingId,
+      userId
+    );
 
     if (!bookingResult.found) {
       return res.status(404).json({ message: "Booking not found" });
