@@ -138,7 +138,7 @@ exports.verifyOtp = async (email, otp) => {
       return { success, message };
     }
 
-    await createUser({
+    await this.createUser({
       email: tempUser.userEmail,
       username: tempUser.username,
       password: tempUser.password,
@@ -163,7 +163,7 @@ exports.verifyOtp = async (email, otp) => {
  * @param {string} userData.password - Mật khẩu của người dùng (chưa mã hóa)
  * @returns {Promise<object>} - Trả về thông tin người dùng mới tạo
  */
-createUser = async ({ email, username, password }) => {
+exports.createUser = async ({ email, username, password }) => {
   const newCart = new Cart();
   await newCart.save();
 
@@ -172,6 +172,28 @@ createUser = async ({ email, username, password }) => {
     password: password,
     userEmail: email,
     userCart: newCart._id,
+  });
+
+  const newUserVoucher = new UserVoucher({
+    userId: newUser._id,
+  });
+
+  await newUserVoucher.save();
+  await newUser.save();
+
+  return newUser;
+};
+
+exports.createStaff = async ({ email, username, password, formatRole }) => {
+  const newCart = new Cart();
+  await newCart.save();
+
+  const newUser = new User({
+    username,
+    password: password,
+    userEmail: email,
+    userCart: newCart._id,
+    userRole: formatRole,
   });
 
   const newUserVoucher = new UserVoucher({
