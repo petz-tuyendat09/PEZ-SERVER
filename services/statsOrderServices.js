@@ -18,9 +18,12 @@ async function getOrderStatistics({ startDate, endDate }) {
       999
     );
 
-    // Validate the Date objects
     if (isNaN(startDateFormat.getTime()) || isNaN(endDateFormat.getTime())) {
-      throw new Error('Invalid date format. Please use "YYYY-MM-DD".');
+      throw new Error("Không đúng định dạng ngày.");
+    }
+
+    if (endDateFormat.getTime() < startDateFormat.getTime()) {
+      throw new Error("Ngày không hợp lệ");
     }
 
     // Query for orders within the date range
