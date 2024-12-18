@@ -1,6 +1,7 @@
 const Cart = require("../models/Cart");
 const User = require("../models/User");
 const userServices = require("../services/userServices");
+const authService = require("../services/authServices");
 
 // Get user by ID
 const getUserById = async (req, res) => {
@@ -162,6 +163,76 @@ const changeUserShift = async (req, res) => {
   }
 };
 
+const createUser = async (req, res) => {
+  try {
+    const { email, username, password } = req.body;
+    const isEmailExists = await authService.isEmailExists(email);
+    if (isEmailExists) {
+      return res
+        .status(409)
+        .json({ message: "Email đã tồn tại, vui lòng nhập email khác" });
+    }
+
+    const isUsernameExists = await authService.isUsernameExists(username);
+    if (isUsernameExists) {
+      return res.status(409).json({
+        message: "Tên đăng nhập đã tồn tại, vui lòng nhập tên đăng nhập khác",
+      });
+    }
+
+    await authService.createUser({ email, username, password });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Tạo tài khoản thành công" });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const createStaff = async (req, res) => {
+  try {
+    const { email, username, password, formatRole } = req.body;
+    const isEmailExists = await authService.isEmailExists(email);
+    if (isEmailExists) {
+      return res
+        .status(409)
+        .json({ message: "Email đã tồn tại, vui lòng nhập email khác" });
+    }
+
+    console.log(req.body);
+
+    const isUsernameExists = await authService.isUsernameExists(username);
+    if (isUsernameExists) {
+      return res.status(409).json({
+        message: "Tên đăng nhập đã tồn tại, vui lòng nhập tên đăng nhập khác",
+      });
+    }
+
+    await authService.createStaff({ email, username, password, formatRole });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Tạo tài khoản thành công" });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const unbanUser = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    await User.findByIdAndDelete(userId);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Đã xóa nhân viên9i" });
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   getUserById,
   getAllUsers,
@@ -171,4 +242,7 @@ module.exports = {
   getAllUsersPaginate,
   changeUserRole,
   changeUserShift,
+  createUser,
+  unbanUser,
+  createStaff,
 };
