@@ -239,7 +239,6 @@ exports.cancelBookingById = async (bookingId, userId) => {
 
     let banned = false;
 
-
     if (userId) {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -254,16 +253,15 @@ exports.cancelBookingById = async (bookingId, userId) => {
         },
       });
 
-    if (canceledBookingsCount >= 5) {
-      const user = await User.findById(userId);
-      user.bannedUser = true;
+      if (canceledBookingsCount >= 5) {
+        const user = await User.findById(userId);
+        user.bannedUser = true;
 
-      await user.save();
-      sendBannedEmail(user.displayName, user.userEmail);
-      banned = true;
-
+        await user.save();
+        sendBannedEmail(user.displayName, user.userEmail);
+        banned = true;
+      }
     }
-
     booking.bookingStatus = "Canceled";
     await booking.save();
 
