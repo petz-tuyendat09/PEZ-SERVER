@@ -237,20 +237,22 @@ exports.cancelBookingById = async (bookingId, userId) => {
       return { alreadyCanceled: true };
     }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const canceledBookingsCount = await Booking.countDocuments({
-      userId: userId,
-      bookingStatus: "Canceled",
-      bookingDate: {
-        $gte: startOfMonth,
-        $lte: endOfMonth,
-      },
-    });
-
     let banned = false;
+
+
+    if (userId) {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const canceledBookingsCount = await Booking.countDocuments({
+        userId: userId,
+        bookingStatus: "Canceled",
+        bookingDate: {
+          $gte: startOfMonth,
+          $lte: endOfMonth,
+        },
+      });
 
     if (canceledBookingsCount >= 5) {
       const user = await User.findById(userId);
@@ -259,6 +261,7 @@ exports.cancelBookingById = async (bookingId, userId) => {
       await user.save();
       sendBannedEmail(user.displayName, user.userEmail);
       banned = true;
+
     }
 
     booking.bookingStatus = "Canceled";
