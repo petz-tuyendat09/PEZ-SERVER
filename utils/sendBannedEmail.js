@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-exports.sendDeliveredEmail = async (orderDetail) => {
+exports.sendBannedEmail = async (displayName, userEmail) => {
   const transporter = nodemailer.createTransport({
     service: "Gmail",
     auth: {
@@ -11,8 +11,8 @@ exports.sendDeliveredEmail = async (orderDetail) => {
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: orderDetail.customerEmail,
-    subject: "Trạng thái đơn hàng của bạn",
+    to: userEmail,
+    subject: "Tài khoản của bạn đã bị khóa",
     html: `
       <table style="width: 100%; text-align: center;">
   <tr>
@@ -27,15 +27,10 @@ exports.sendDeliveredEmail = async (orderDetail) => {
           <p style="font-size: 64px; color: black; margin: 0;">PETZ</p>
         </div>
         <div style="margin-top: 16px;">
-          <p style="margin-bottom: 16px;">Xin chào ${orderDetail.customerName}, đơn hàng của bạn đã được giao.</p>
+          <p style="margin-bottom: 16px;">Xin chào ${displayName}, tài khoản của bạn đã bị khóa do vi phạm quy tắc của chúng tôi..</p>
           <div style="display: inline-block; text-align: center;">
-            <img
-              src="https://cdn-icons-png.flaticon.com/128/16104/16104958.png"
-              alt=""
-              style="width: 40px; vertical-align: middle;"
-            />
             <div style="display: inline-block; border-radius: 9999px; background-color: #77CC00; color: white; padding: 8px 24px; margin-left: 8px;">
-              Vận chuyển thành công
+              Bạn sẽ được mở khóa tài khoản vào ngày đầu tiên của tháng
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ const Booking = require("../models/Booking");
 const Service = require("../models/Services");
 const Review = require("../models/Review");
 const User = require("../models/User");
+const { sendBannedEmail } = require("../utils/sendBannedEmail");
 
 const moment = require("moment");
 const { sendBookingEmail } = require("../utils/sendBookingEmail");
@@ -150,13 +151,11 @@ exports.createBooking = async (
       },
     });
 
-    console.log(bookingsToday);
-
-    const maxBookingsPerDay = 3; // Giới hạn tối đa số booking mỗi ngày
+    const maxBookingsPerDay = 5;
     if (bookingsToday >= maxBookingsPerDay) {
       return {
         success: false,
-        message: "Bạn đã đạt giới hạn đặt lịch trong ngày hôm nay.",
+        message: "Bạn đã đạt tối đa số lần đặt lịch trong ngày.",
       };
     }
 
@@ -240,6 +239,7 @@ exports.cancelBookingById = async (bookingId, userId) => {
 
     let banned = false;
 
+
     if (userId) {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -254,10 +254,14 @@ exports.cancelBookingById = async (bookingId, userId) => {
         },
       });
 
-      if (canceledBookingsCount >= 5) {
-        await User.findByIdAndUpdate(userId, { bannedUser: true });
-        banned = true;
-      }
+    if (canceledBookingsCount >= 5) {
+      const user = await User.findById(userId);
+      user.bannedUser = true;
+
+      await user.save();
+      sendBannedEmail(user.displayName, user.userEmail);
+      banned = true;
+
     }
 
     booking.bookingStatus = "Canceled";

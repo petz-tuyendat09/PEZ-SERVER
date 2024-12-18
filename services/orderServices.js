@@ -4,6 +4,7 @@ const ReviewProducts = require("../models/ReviewProducts");
 const Product = require("../models/Product");
 const { sendDeliveringEmail } = require("../utils/sendDeliveringEmail");
 const { sendDeliveredEmail } = require("../utils/sendDeliveredEmail");
+const { sendBannedEmail } = require("../utils/sendBannedEmail");
 
 exports.queryOrders = async ({
   page,
@@ -127,7 +128,6 @@ exports.getOrderByOrderId = async (orderId) => {
 
 exports.cancelOrder = async (orderId, userId) => {
   try {
-    // Tìm đơn hàng
     const order = await Order.findById(orderId);
     if (!order) {
       return { success: false, message: "Order not found" };
@@ -167,7 +167,13 @@ exports.cancelOrder = async (orderId, userId) => {
     await order.save();
 
     if (canceledOrderCount >= 1) {
-      await User.findByIdAndUpdate(userId, { bannedUser: true });
+      const user = await User.findById(userId);
+      user.bannedUser = true;
+
+      await user.save();
+      sendBannedEmail(user.displayName, user.userEmail);
+      banned = true;
+
       return {
         success: false,
         message: "Tài khoản của bạn đã bị hạn chế, vì hủy đơn quá nhiều.",
