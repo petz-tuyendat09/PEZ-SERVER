@@ -172,6 +172,7 @@ exports.createUser = async ({ email, username, password }) => {
     password: password,
     userEmail: email,
     userCart: newCart._id,
+    userPoint: 5000,
   });
 
   const newUserVoucher = new UserVoucher({
@@ -187,10 +188,11 @@ exports.createUser = async ({ email, username, password }) => {
 exports.createStaff = async ({ email, username, password, formatRole }) => {
   const newCart = new Cart();
   await newCart.save();
+  let hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
   const newUser = new User({
     username,
-    password: password,
+    password: hashedPassword,
     userEmail: email,
     userCart: newCart._id,
     userRole: formatRole,

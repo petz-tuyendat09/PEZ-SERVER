@@ -2,6 +2,7 @@ const Cart = require("../models/Cart");
 const User = require("../models/User");
 const userServices = require("../services/userServices");
 const authService = require("../services/authServices");
+const { sendNewAccount } = require("../utils/sendNewAccount");
 
 // Get user by ID
 const getUserById = async (req, res) => {
@@ -181,7 +182,7 @@ const createUser = async (req, res) => {
     }
 
     await authService.createUser({ email, username, password });
-
+    sendNewAccount(email, username, password);
     return res
       .status(200)
       .json({ success: true, message: "Tạo tài khoản thành công" });
@@ -199,8 +200,6 @@ const createStaff = async (req, res) => {
         .status(409)
         .json({ message: "Email đã tồn tại, vui lòng nhập email khác" });
     }
-
-    console.log(req.body);
 
     const isUsernameExists = await authService.isUsernameExists(username);
     if (isUsernameExists) {

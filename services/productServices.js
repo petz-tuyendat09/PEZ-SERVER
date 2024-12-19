@@ -5,6 +5,7 @@ const ProductDetailDescription = require("../models/ProductDetailDescription.js"
 const { sendLowstockEmail } = require("../utils/sendLowstockEmail.js");
 const User = require("../models/User.js");
 const ReviewProducts = require("../models/ReviewProducts.js");
+const Cart = require("../models/Cart.js");
 
 // === Query Product ===
 /**
@@ -338,6 +339,29 @@ exports.deleteProduct = async (productId) => {
 
     // Xóa sản phẩm khỏi cơ sở dữ liệu
     await Product.deleteOne({ _id: productId });
+
+    const removeProductFromCart = async (productId) => {
+      let hasMore = true;
+      while (hasMore) {
+        const carts = await Cart.find({ "cartItems.productId": productId })
+          .limit(100)
+          .exec();
+
+        if (carts.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const cart of carts) {
+          cart.cartItems = cart.cartItems.filter(
+            (item) => !item.productId.equals(productId)
+          );
+          await cart.save();
+        }
+      }
+    };
+
+    await removeProductFromCart(productId);
 
     console.log(
       `Product with ID ${productId} has been deleted along with its images.`

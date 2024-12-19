@@ -3,8 +3,11 @@ const crypto = require("crypto");
 const Order = require("../models/Order");
 
 async function refundHandler(req, res) {
+  console.log(req.body);
+
   try {
     const { transId, amount, orderId } = req.body;
+
     const refundOrderId = `${orderId}_${Date.now()}`;
 
     if (!transId || !amount || !orderId) {
@@ -39,8 +42,6 @@ async function refundHandler(req, res) {
       .update(rawSignature)
       .digest("hex");
 
-    console.log(signature);
-
     // Tạo payload cho API
     const body = {
       partnerCode: "MOMO",
@@ -71,7 +72,7 @@ async function refundHandler(req, res) {
         // Refund thành công, cập nhật trạng thái Order
         const updatedOrder = await Order.findByIdAndUpdate(
           orderId,
-          { orderStatus: "REFUND" },
+          { orderStatus: "CANCELLED" },
           { new: true }
         );
 
