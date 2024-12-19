@@ -166,7 +166,7 @@ exports.cancelOrder = async (orderId, userId) => {
     order.orderStatus = "CANCELLED";
     await order.save();
 
-    if (canceledOrderCount >= 1) {
+    if (canceledOrderCount >= 10) {
       const user = await User.findById(userId);
       user.bannedUser = true;
 
