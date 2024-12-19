@@ -22,7 +22,7 @@ async function handler(req, res) {
   const orderInfo = "Thanh toán đơn hàng";
   const redirectUrl =
     process.env.DOMAIN_URL ||
-    "http://localhost:3000/cart/place-order/payment-status";
+    "https://petz-zeta.vercel.app/cart/place-order/payment-status";
   const ipnUrl =
     "https://5fc8-2405-4803-c690-96e0-183e-80ea-6df0-b83b.ngrok-free.app/api/payment/callback-payment";
   const requestId = orderId;
