@@ -48,6 +48,8 @@ async function handler(req, res) {
     requestType,
     extraData,
     signature,
+        lang: "vi",
+
   };
 
   const options = {
