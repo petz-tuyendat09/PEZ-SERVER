@@ -6,6 +6,8 @@ const upload = multer();
 const productController = require("../controller/product-controller");
 
 router.get("/", productController.queryProducts);
+router.get("/shop", productController.queryProductsWithPriceFilter);
+
 router.get("/page", productController.getProductsWithPagination);
 router.post(
   "/insert-product",

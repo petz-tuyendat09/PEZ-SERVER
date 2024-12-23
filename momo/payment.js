@@ -24,7 +24,7 @@ async function handler(req, res) {
     process.env.DOMAIN_URL ||
     "https://petz-zeta.vercel.app/cart/place-order/payment-status";
   const ipnUrl =
-    "https://8183-2405-4803-c848-94f0-6576-63d6-8ba2-c74b.ngrok-free.app/api/payment/callback-payment";
+    "https://061a-2405-4803-c848-94f0-91aa-f8cf-8368-305a.ngrok-free.app/api/payment/callback-payment";
   const requestId = orderId;
   const requestType = "captureWallet";
   const extraData = "";
