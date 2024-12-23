@@ -33,11 +33,42 @@ exports.queryProducts = async (req, res) => {
       productBuy: req.query.productBuy,
       page: req.query.page,
       limit: parseInt(req.query.limit, 10) || 20,
-      lowStock: req.query.lowStock === "true", // Convert to boolean
+      lowStock: req.query.lowStock === "true",
       sortBy: req.query.sortBy,
     };
 
     const products = await productService.queryProducts(filters);
+
+    // setTimeout(() => {
+    //   return res.status(200).json(products);
+    // }, 3000);
+    return res.status(200).json(products);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.queryProductsWithPriceFilter = async (req, res) => {
+  try {
+    const filters = {
+      productCategory: req.query.productCategory,
+      productSlug: req.query.productSlug,
+      productName: req.query.productName,
+      salePercent: req.query.salePercent,
+      productStatus: req.query.productStatus,
+      productBuy: req.query.productBuy,
+      page: req.query.page,
+      limit: parseInt(req.query.limit, 10) || 20,
+      sortBy: req.query.sortBy,
+      minPrice: req.query.minPrice,
+      maxPrice: req.query.maxPrice,
+    };
+
+    const products = await productService.queryProductsWithPriceFilter(filters);
+
+    // setTimeout(() => {
+    //   return res.status(200).json(products);
+    // }, 1000);
     return res.status(200).json(products);
   } catch (err) {
     return res.status(500).json({ error: err.message });

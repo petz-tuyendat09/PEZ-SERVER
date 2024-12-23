@@ -6,6 +6,187 @@ const { sendLowstockEmail } = require("../utils/sendLowstockEmail.js");
 const User = require("../models/User.js");
 const ReviewProducts = require("../models/ReviewProducts.js");
 const Cart = require("../models/Cart.js");
+const { default: mongoose } = require("mongoose");
+
+// === Query Product ===
+/**
+ * Trả về pipeline bước lọc giá (nếu có minPrice, maxPrice).
+ * Mục tiêu: Chỉ giữ lại doc có option thỏa giá trị min - max.
+ */
+function buildPriceRangeMatch(minPrice, maxPrice) {
+  const pipeline = [];
+
+  // Nếu cả minPrice và maxPrice đều tồn tại
+  if (minPrice !== undefined && maxPrice !== undefined) {
+    pipeline.push({
+      $match: {
+        "productOption.productPrice": { $gte: minPrice, $lte: maxPrice },
+      },
+    });
+  } else if (minPrice !== undefined) {
+    pipeline.push({
+      $match: {
+        "productOption.productPrice": { $gte: minPrice },
+      },
+    });
+  } else if (maxPrice !== undefined) {
+    pipeline.push({
+      $match: {
+        "productOption.productPrice": { $lte: maxPrice },
+      },
+    });
+  }
+  return pipeline;
+}
+
+/**
+ * Build pipeline cho trường hợp lowStock
+ */
+function buildLowStockPipeline(query, sortBy, skip, limit, minPrice, maxPrice) {
+  const lowStockThreshold = 5;
+  let pipeline = [
+    { $match: query },
+    // Pipeline lọc giá (nếu có minPrice, maxPrice)
+    ...buildPriceRangeMatch(minPrice, maxPrice),
+    // Bắt buộc phải unwind để group, tính totalQuantity
+    { $unwind: "$productOption" },
+    {
+      $group: {
+        _id: "$_id",
+        productName: { $first: "$productName" },
+        productCategory: { $first: "$productCategory" },
+        productSlug: { $first: "$productSlug" },
+        productOption: { $push: "$productOption" },
+        salePercent: { $first: "$salePercent" },
+        productBuy: { $first: "$productBuy" },
+        productThumbnail: { $first: "$productThumbnail" },
+        productImages: { $first: "$productImages" },
+        totalQuantity: { $sum: "$productOption.productQuantity" },
+      },
+    },
+    { $match: { totalQuantity: { $lt: lowStockThreshold } } },
+  ];
+
+  // Thêm phần sort, skip, limit
+  pipeline = pipeline.concat(buildSortPipeline(sortBy, skip, limit));
+  return pipeline;
+}
+
+/**
+ * Build pipeline sort + skip + limit
+ */
+function buildSortPipeline(sortBy, skip, limit) {
+  let pipeline = [];
+
+  if (sortBy === "productBuyDesc") {
+    pipeline.push({ $sort: { productBuy: -1 } });
+  } else if (sortBy === "productBuyAsc") {
+    pipeline.push({ $sort: { productBuy: 1 } });
+  } else if (sortBy === "latest") {
+    pipeline.push({ $sort: { _id: -1 } });
+  } else if (sortBy === "price") {
+    pipeline.push(
+      { $addFields: { maxPrice: { $max: "$productOption.productPrice" } } },
+      { $sort: { maxPrice: 1 } }
+    );
+  } else if (sortBy === "priceDesc") {
+    pipeline.push(
+      { $addFields: { maxPrice: { $max: "$productOption.productPrice" } } },
+      { $sort: { maxPrice: -1 } }
+    );
+  } else {
+    // Mặc định
+    pipeline.push({ $sort: { _id: 1 } });
+  }
+
+  // Cuối cùng mới skip, limit
+  pipeline.push({ $skip: skip });
+  pipeline.push({ $limit: limit });
+
+  return pipeline;
+}
+
+/**
+ * Build pipeline cho non-lowStock (dùng aggregate)
+ * để lọc khoảng giá + sort theo giá
+ */
+function buildNonLowStockAggregatePipeline(
+  query,
+  sortBy,
+  skip,
+  limit,
+  minPrice,
+  maxPrice
+) {
+  let pipeline = [
+    { $match: query },
+    // Lọc theo giá (nếu có)
+    ...buildPriceRangeMatch(minPrice, maxPrice),
+  ];
+
+  // Tuỳ theo sortBy
+  if (
+    sortBy === "price" ||
+    sortBy === "priceDesc" ||
+    sortBy === "productBuyAsc" ||
+    sortBy === "productBuyDesc" ||
+    sortBy === "latest"
+  ) {
+    // cần unwind + group, hay addFields?
+    // tuỳ logic, ở đây demo addFields maxPrice, productBuy
+    pipeline.push({ $unwind: "$productOption" });
+    pipeline.push({
+      $group: {
+        _id: "$_id",
+        productName: { $first: "$productName" },
+        productCategory: { $first: "$productCategory" },
+        productSlug: { $first: "$productSlug" },
+        productOption: { $push: "$productOption" },
+        salePercent: { $first: "$salePercent" },
+        productBuy: { $first: "$productBuy" },
+        productThumbnail: { $first: "$productThumbnail" },
+        productImages: { $first: "$productImages" },
+      },
+    });
+    // Ghép thêm pipeline sort
+    pipeline = pipeline.concat(buildSortPipeline(sortBy, skip, limit));
+  } else {
+    // nếu sortBy không phải price, ta vẫn có thể dừng ở .find()
+    // tuỳ theo bạn muốn unify 1 flow hay tách ra.
+    // Ở đây mình unify hết sang aggregate pipeline luôn:
+    pipeline = pipeline.concat([
+      { $unwind: "$productOption" },
+      {
+        $group: {
+          _id: "$_id",
+          productName: { $first: "$productName" },
+          productCategory: { $first: "$productCategory" },
+          productSlug: { $first: "$productSlug" },
+          productOption: { $push: "$productOption" },
+          salePercent: { $first: "$salePercent" },
+          productBuy: { $first: "$productBuy" },
+          productThumbnail: { $first: "$productThumbnail" },
+          productImages: { $first: "$productImages" },
+        },
+      },
+      ...buildSortPipeline(null, skip, limit), // null => sort mặc định
+    ]);
+  }
+
+  return pipeline;
+}
+
+/**
+ * Tìm kiếm sản phẩm dựa trên các tiêu chí khác nhau
+ * @param {object} filters - Các tiêu chí tìm kiếm sản phẩm
+ * @param {string} filters.productCategory - Tên danh mục sản phẩm
+ * @param {string} filters.productName - Tên sản phẩm
+ * @param {number} filters.salePercent - Phần trăm giảm giá
+ * @param {string} filters.productStatus - Trạng thái sản phẩm ("default" hoặc "lastest")
+ * @param {number} filters.limit - Số lượng sản phẩm tối đa trả về
+ * @param {number} filters.productBuy - Lượt mua của sản phẩm
+ * @returns {Promise<Array>} Trả về danh sách các sản phẩm phù hợp với tiêu chí tìm kiếm
+ */
 
 // === Query Product ===
 /**
@@ -150,6 +331,196 @@ exports.queryProducts = async ({
     };
   } catch (err) {
     console.error("Error occurred:", err.message);
+    throw err;
+  }
+};
+
+exports.queryProductsWithPriceFilter = async ({
+  productCategory,
+  productSlug,
+  productName,
+  salePercent,
+  productStatus = "default",
+  productBuy,
+  limit = 10,
+  page = 1,
+  sortBy,
+  minPrice, // Giá tối thiểu
+  maxPrice, // Giá tối đa
+} = {}) => {
+  try {
+    // --------------------------------------------
+    // 1. Tạo query cho các trường cơ bản (ngoài price)
+    // --------------------------------------------
+    const query = {};
+
+    if (productName) {
+      query.productName = new RegExp(productName, "i");
+    }
+
+    if (salePercent !== undefined) {
+      if (Number(salePercent) === 0) {
+        query.salePercent = 0;
+      } else {
+        query.salePercent = { $gte: Number(salePercent) };
+      }
+    }
+
+    if (productCategory) {
+      query.productCategory = new mongoose.Types.ObjectId(productCategory);
+    }
+
+    if (productSlug) {
+      query.productSlug = new RegExp(productSlug, "i");
+    }
+
+    if (productBuy) {
+      query.productBuy = { $gte: Number(productBuy) };
+    }
+
+    // --------------------------------------------
+    // 2. Tính skip, limit để phân trang
+    // --------------------------------------------
+    const skip = (page - 1) * limit;
+
+    // --------------------------------------------
+    // 3. Xây pipeline cho aggregate
+    // --------------------------------------------
+    const pipeline = [];
+
+    // 3.1. $match: khớp query cơ bản
+    pipeline.push({ $match: query });
+
+    // 3.2. $unwind: tách các productOption để lọc theo price
+    pipeline.push({ $unwind: "$productOption" });
+
+    // 3.3. Lọc theo minPrice, maxPrice (nếu có)
+    const priceFilter = {};
+    if (minPrice !== undefined) {
+      priceFilter.$gte = Number(minPrice);
+    }
+    if (maxPrice !== undefined) {
+      priceFilter.$lte = Number(maxPrice);
+    }
+    if (Object.keys(priceFilter).length > 0) {
+      pipeline.push({
+        $match: {
+          "productOption.productPrice": priceFilter,
+        },
+      });
+    }
+
+    // 3.4. $group để gom lại từng Product, đồng thời tính maxPrice, minPrice
+    pipeline.push({
+      $group: {
+        _id: "$_id",
+        // Lưu 1 doc gốc để lát replaceRoot
+        doc: { $first: "$$ROOT" },
+        // Gom tất cả option cho product này
+        allOptions: { $push: "$productOption" },
+        // Tính giá max/min
+        maxPrice: { $max: "$productOption.productPrice" },
+        minPrice: { $min: "$productOption.productPrice" },
+      },
+    });
+
+    // 3.5. $addFields để tạo thêm 2 trường "maxPriceOption" và "minPriceOption"
+    //     (filter từ allOptions)
+    pipeline.push({
+      $addFields: {
+        "doc.productOption": "$allOptions",
+        "doc.maxPrice": "$maxPrice",
+        "doc.minPrice": "$minPrice",
+        "doc.maxPriceOption": {
+          $filter: {
+            input: "$allOptions",
+            as: "opt",
+            cond: { $eq: ["$$opt.productPrice", "$maxPrice"] },
+          },
+        },
+        "doc.minPriceOption": {
+          $filter: {
+            input: "$allOptions",
+            as: "opt",
+            cond: { $eq: ["$$opt.productPrice", "$minPrice"] },
+          },
+        },
+      },
+    });
+
+    // 3.6. Đưa doc trở thành document chính
+    pipeline.push({
+      $replaceRoot: { newRoot: "$doc" },
+    });
+
+    // 3.7. Sắp xếp (nếu cần)
+    // sortBy có thể là "priceDesc", "priceAsc", "productBuyDesc", ...
+    // Ở ví dụ này, minh họa 2 kiểu sort: priceDesc & priceAsc.
+    if (sortBy === "priceDesc") {
+      pipeline.push({ $sort: { maxPrice: -1 } });
+    } else if (sortBy === "priceAsc") {
+      pipeline.push({ $sort: { minPrice: 1 } });
+    } else if (sortBy === "productBuyDesc") {
+      pipeline.push({ $sort: { productBuy: -1 } });
+    } else if (sortBy === "productBuyAsc") {
+      pipeline.push({ $sort: { productBuy: 1 } });
+    } else if (sortBy === "latest") {
+      pipeline.push({ $sort: { _id: -1 } });
+    } else if (sortBy === "oldest") {
+      pipeline.push({ $sort: { _id: 1 } });
+    } else if (productStatus === "latest") {
+      pipeline.push({ $sort: { _id: -1 } });
+    } else {
+      // Mặc định
+      pipeline.push({ $sort: { _id: 1 } });
+    }
+
+    // 3.8. Áp dụng skip và limit
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: Number(limit) });
+
+    // --------------------------------------------
+    // 4. Tính tổng số documents cho pagination
+    //    (phải build 1 pipeline riêng để đếm)
+    // --------------------------------------------
+    const countPipeline = [{ $match: query }, { $unwind: "$productOption" }];
+    if (Object.keys(priceFilter).length > 0) {
+      countPipeline.push({
+        $match: {
+          "productOption.productPrice": priceFilter,
+        },
+      });
+    }
+    // Gom để đếm unique _id
+    countPipeline.push({
+      $group: { _id: "$_id" },
+    });
+    countPipeline.push({
+      $count: "count",
+    });
+
+    // --------------------------------------------
+    // 5. Chạy pipeline
+    // --------------------------------------------
+    const [products, countResult] = await Promise.all([
+      Product.aggregate(pipeline),
+      Product.aggregate(countPipeline),
+    ]);
+
+    const totalDocuments = countResult.length > 0 ? countResult[0].count : 0;
+    const totalPages = Math.ceil(totalDocuments / limit);
+
+    // Populate productDetailDescription nếu cần
+    // (Vì aggregate không tự populate như .find().populate())
+    // Bạn có thể query ngược _id => populate, hoặc convert sang .lookup()...
+
+    return {
+      products,
+      totalPages,
+      currentPage: page,
+    };
+  } catch (err) {
+    console.error("Error occurred:", err);
     throw err;
   }
 };
