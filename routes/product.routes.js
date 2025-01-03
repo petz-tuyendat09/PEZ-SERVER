@@ -20,6 +20,7 @@ router.post(
 router.get("/trending", productController.getTrendingProducts);
 router.get("/by-cat-id", productController.queryProductsByCateId);
 router.delete("/delete-product", productController.deleteProduct);
+router.put("/unhidden", productController.unHidden);
 router.post("/lowstock-nofi", productController.lowstockNofi);
 router.get("/get-review", productController.getReview);
 router.put("/review", productController.review);

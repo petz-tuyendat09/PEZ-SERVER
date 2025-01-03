@@ -8,6 +8,7 @@ exports.getVoucher = async (req, res) => {
       typeFilter: req.query.typeFilter,
       limit: req.query.limit,
       voucherId: req.query.voucherId,
+      isHidden: req.query.isHidden,
     };
 
     const products = await voucherServices.queryVoucher(filters);
@@ -173,6 +174,24 @@ exports.changeVoucher = async (req, res) => {
     }
   } catch (error) {
     console.log("Error in changeVoucher controller: ", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+exports.toggleVoucher = async (req, res) => {
+  try {
+    const { voucherId, toggleOption } = req.body;
+    const result = await voucherServices.toggleVoucher({
+      voucherId,
+      toggleOption,
+    });
+    if (result.success) {
+      res.status(200).json({ message: result.message, user: result.user });
+    } else {
+      res.status(400).json({ message: result.message });
+    }
+  } catch (error) {
+    console.log("Error in getVoucherCanExchange - controller ", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };

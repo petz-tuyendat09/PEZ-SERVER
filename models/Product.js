@@ -57,6 +57,11 @@ const productSchema = new Schema({
     default: null,
     ref: "ProductDetailDescription",
   },
+  isHidden: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
   productRating: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
 });

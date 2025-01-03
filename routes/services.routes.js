@@ -7,5 +7,6 @@ router.get("/paginate", servicesController.queryServicesPaginate);
 router.post("/", servicesController.insertService);
 router.delete("/", servicesController.deleteService);
 router.put("/", servicesController.updateService);
+router.put("/toggle-service", servicesController.toggleService);
 
 module.exports = router;

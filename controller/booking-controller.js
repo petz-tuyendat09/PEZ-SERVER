@@ -80,6 +80,10 @@ exports.createBooking = async (req, res) => {
       totalPrice,
       bookingDate,
       bookingHours,
+      discountAmount,
+      totalAfterDiscount,
+      voucherId,
+      paymentMethod,
     } = req.body;
 
     const { success, message } = await bookingService.createBooking(
@@ -90,11 +94,58 @@ exports.createBooking = async (req, res) => {
       selectedServices,
       totalPrice,
       bookingDate,
-      bookingHours
+      bookingHours,
+      discountAmount,
+      totalAfterDiscount,
+      voucherId,
+      paymentMethod
     );
 
     if (success) {
       res.status(200).json({ message: message });
+    } else {
+      res.status(400).json({ message: message });
+    }
+  } catch (error) {
+    console.log("Error in bookingController:", error);
+  }
+};
+
+exports.createBookingWithMomo = async (req, res) => {
+  try {
+    const {
+      userId,
+      customerName,
+      customerPhone,
+      customerEmail,
+      selectedServices,
+      totalPrice,
+      bookingDate,
+      bookingHours,
+      discountAmount,
+      totalAfterDiscount,
+      voucherId,
+      paymentMethod,
+    } = req.body;
+
+    const { success, message, payUrl } =
+      await bookingService.createBookingWithMomo(
+        userId,
+        customerName,
+        customerPhone,
+        customerEmail,
+        selectedServices,
+        totalPrice,
+        bookingDate,
+        bookingHours,
+        discountAmount,
+        totalAfterDiscount,
+        voucherId,
+        paymentMethod
+      );
+
+    if (success) {
+      res.status(200).json({ payUrl: payUrl });
     } else {
       res.status(400).json({ message: message });
     }

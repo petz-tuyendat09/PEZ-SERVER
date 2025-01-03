@@ -222,21 +222,36 @@ const getVoucherHeld = async (
       .populate({
         path: "vouchers.voucherId",
       })
-      .skip(skip)
-      .limit(itemsPerPage);
+      .exec();
+
+    // Lọc và xóa các voucher đã hết hạn
+    const currentDate = new Date();
+    const validVouchers = [];
+
+    for (const userVoucher of userVouchers) {
+      const filteredVouchers = userVoucher.vouchers.filter((voucher) => {
+        return new Date(voucher.expirationDate) > currentDate;
+      });
+
+      // Nếu có voucher đã hết hạn, cập nhật lại document
+      if (filteredVouchers.length !== userVoucher.vouchers.length) {
+        userVoucher.vouchers = filteredVouchers;
+        await userVoucher.save();
+      }
+
+      validVouchers.push(...filteredVouchers);
+    }
 
     // Nếu cần sắp xếp theo salePercent
-    const sortedVouchers = userVouchers.flatMap((userVoucher) =>
-      userVoucher.vouchers.sort((a, b) => {
-        if (salePercentSort === "asc") {
-          return a.voucherId.salePercent - b.voucherId.salePercent;
-        } else if (salePercentSort === "desc") {
-          return b.voucherId.salePercent - a.voucherId.salePercent;
-        } else {
-          return 0;
-        }
-      })
-    );
+    const sortedVouchers = validVouchers.sort((a, b) => {
+      if (salePercentSort === "asc") {
+        return a.voucherId.salePercent - b.voucherId.salePercent;
+      } else if (salePercentSort === "desc") {
+        return b.voucherId.salePercent - a.voucherId.salePercent;
+      } else {
+        return 0;
+      }
+    });
 
     // Tổng số voucher
     const totalItems = sortedVouchers.length;
@@ -258,7 +273,6 @@ const getVoucherHeld = async (
 
 const decreaseUserVoucher = async (userId, voucherId) => {
   try {
-    // Tìm bảng Voucher dựa trên userId
     const userVouchers = await UserVoucher.findOne({ userId });
     if (!userVouchers) {
       throw new Error("User vouchers not found");

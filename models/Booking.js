@@ -34,8 +34,13 @@ const bookingSchema = new Schema(
     },
     bookingStatus: {
       type: String,
-      enum: ["Booked", "Done", "Confirm", "Canceled"],
+      enum: ["Booked", "Done", "Confirm", "Paid", "Canceled"],
       default: "Booked",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["COD", "BANKING"],
+      default: "COD",
     },
     reviewStatus: {
       type: Boolean,
@@ -44,6 +49,25 @@ const bookingSchema = new Schema(
     totalPrice: {
       type: Number,
       required: true,
+    },
+    discountAmount: {
+      type: Number,
+      required: false,
+      default: 0,
+    },
+    totalAfterDiscount: {
+      type: Number,
+      required: false,
+      default: 0,
+    },
+    transIDMomo: {
+      type: Number,
+      required: false,
+    },
+    voucherId: {
+      type: ObjectId,
+      ref: "Voucher",
+      required: false,
     },
     bookingHours: {
       type: String,

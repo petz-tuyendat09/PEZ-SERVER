@@ -9,6 +9,7 @@ exports.queryVoucher = async ({
   pointSort, // Sắp xếp theo điểm (voucherPoint)
   typeFilter = "", // Chuỗi voucherType để lọc
   limit = 5,
+  isHidden,
 }) => {
   try {
     // Chuyển đổi giá trị sort thành 1 (asc) hoặc -1 (desc)
@@ -27,15 +28,13 @@ exports.queryVoucher = async ({
       query.voucherType = new RegExp(typeFilter, "i"); // Tìm kiếm voucherType có chứa chuỗi typeFilter (không phân biệt hoa thường)
     }
 
+    if (isHidden) {
+      query.isHidden = isHidden;
+    }
+
     if (voucherId) {
       query._id = voucherId;
     }
-
-    // Xóa các voucher đã hết hạn
-    const now = new Date();
-    await Voucher.deleteMany({
-      limitedDate: { $ne: null, $lt: now }, // Các voucher có limitedDate và đã hết hạn
-    });
 
     // Lấy tổng số bản ghi dựa trên bộ lọc
     const totalItems = await Voucher.countDocuments(query);
@@ -123,15 +122,17 @@ exports.insertVoucher = async ({
 }) => {
   try {
     // Kiểm tra voucher đã tồn tại hay chưa
-    const checkResult = await checkExistingVoucher(
-      voucherType,
-      salePercent,
-      voucherPoint,
-      flatDiscountAmount,
-      shippingDiscountAmount
-    );
+    // const checkResult = await checkExistingVoucher(
+    //   voucherType,
+    //   salePercent,
+    //   voucherPoint,
+    //   flatDiscountAmount,
+    //   shippingDiscountAmount
+    // );
 
-    if (checkResult.exists) {
+    const checkResult = true;
+
+    if (checkResult) {
       if (checkResult.duplicateType) {
         return {
           success: false,
@@ -171,7 +172,7 @@ exports.insertVoucher = async ({
     ) {
       voucherData.shippingDiscountAmount = shippingDiscountAmount;
     }
-    if (voucherQuantity !== null && voucherQuantity !== undefined) {
+    if (voucherQuantity !== 0 && voucherQuantity !== undefined) {
       voucherData.voucherQuantity = voucherQuantity;
     }
 
@@ -293,6 +294,7 @@ exports.editVoucher = async (
       newFlatDiscountAmount,
       newShippingDiscountAmount
     );
+    console.log(newVoucherQuantity);
 
     updateData.dataToSet.voucherPoint = newVoucherPoint;
     updateData.dataToSet.expirationDate = newExpirationDate;
@@ -541,5 +543,16 @@ exports.changeVoucher = async (voucherPoint, voucherId, userId) => {
   } catch (error) {
     console.log("Error in changeVoucher service: ", error);
     return { success: false, message: "Internal Server Error" };
+  }
+};
+
+exports.toggleVoucher = async ({ voucherId, toggleOption }) => {
+  try {
+    console.log("Đã ẩn");
+    await Voucher.findByIdAndUpdate(voucherId, { isHidden: toggleOption });
+    return { success: true, message: "Cập nhật thành công" };
+  } catch (error) {
+    console.log(error.message);
+    return { success: false, message: "Cập nhật thất bại" };
   }
 };
