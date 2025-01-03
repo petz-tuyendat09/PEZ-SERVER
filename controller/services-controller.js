@@ -20,6 +20,7 @@ exports.queryServicesPaginate = async (req, res) => {
     const filters = {
       serviceType: req.query.serviceType,
       bookingAmount: req.query.bookingAmount,
+      isHidden: req.query.isHidden,
       page: req.query.page,
       limit: req.query.limit,
     };
@@ -105,5 +106,24 @@ exports.updateService = async (req, res) => {
     }
     console.error("Error in updateService controller:", err);
     return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.toggleService = async (req, res) => {
+  try {
+    const { serviceId, toggleOption } = req.body;
+    const result = await servicesServices.toggleService({
+      serviceId,
+      toggleOption,
+    });
+
+    if (result.success) {
+      res.status(200).json({ message: result.message, user: result.user });
+    } else {
+      res.status(400).json({ message: result.message });
+    }
+  } catch (error) {
+    console.log("Error in getVoucherCanExchange - controller ", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };

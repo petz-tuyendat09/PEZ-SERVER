@@ -211,6 +211,7 @@ exports.queryProducts = async ({
   page = 1,
   lowStock = false,
   sortBy,
+  isHidden,
 } = {}) => {
   try {
     const query = {};
@@ -219,6 +220,10 @@ exports.queryProducts = async ({
     // Build query conditions
     if (productName) {
       query.productName = new RegExp(productName, "i");
+    }
+
+    if (isHidden) {
+      query.isHidden = isHidden;
     }
 
     if (salePercent) {
@@ -353,6 +358,7 @@ exports.queryProductsWithPriceFilter = async ({
     // 1. Tạo query cho các trường cơ bản (ngoài price)
     // --------------------------------------------
     const query = {};
+    query.isHidden = false;
 
     if (productName) {
       query.productName = new RegExp(productName, "i");
@@ -678,7 +684,7 @@ exports.insertProduct = async ({
  * @param {string} productId - Id sản phẩm cần xóa
  */
 
-exports.deleteProduct = async (productId) => {
+exports.deleteProductOld = async (productId) => {
   try {
     // Tìm sản phẩm cần xóa
     const product = await Product.findById(productId);
@@ -740,6 +746,22 @@ exports.deleteProduct = async (productId) => {
   } catch (error) {
     console.error("Error in product deletion service:", error);
     throw error;
+  }
+};
+
+exports.deleteProduct = async (productId) => {
+  try {
+    await Product.findByIdAndUpdate(productId, { isHidden: true });
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
+exports.unHidden = async (productId) => {
+  try {
+    await Product.findByIdAndUpdate(productId, { isHidden: false });
+  } catch (error) {
+    console.log(error.message);
   }
 };
 

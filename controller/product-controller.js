@@ -31,6 +31,7 @@ exports.queryProducts = async (req, res) => {
       salePercent: req.query.salePercent,
       productStatus: req.query.productStatus,
       productBuy: req.query.productBuy,
+      isHidden: req.query.isHidden,
       page: req.query.page,
       limit: parseInt(req.query.limit, 10) || 20,
       lowStock: req.query.lowStock === "true",
@@ -44,6 +45,7 @@ exports.queryProducts = async (req, res) => {
     // }, 3000);
     return res.status(200).json(products);
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: err.message });
   }
 };
@@ -144,7 +146,21 @@ exports.deleteProduct = async (req, res) => {
       return res.status(200).json({ message: "Sản phẩm không tồn tại" });
     }
 
-    return res.status(200).json({ message: "Xóa thành công" });
+    return res.status(200).json({ message: "Cập nhật thành công" });
+  } catch (err) {
+    console.log("Error in Delete Product Controller:", err);
+  }
+};
+
+exports.unHidden = async (req, res) => {
+  try {
+    const { productId } = req.body;
+    const result = productService.unHidden(productId);
+    if (!result) {
+      return res.status(200).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    return res.status(200).json({ message: "Cập nhật thành công" });
   } catch (err) {
     console.log("Error in Delete Product Controller:", err);
   }

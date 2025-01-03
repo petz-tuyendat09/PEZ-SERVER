@@ -11,5 +11,6 @@ router.put("/confirm-booking", bookingController.confirmBooking);
 router.put("/done-booking", bookingController.doneBooking);
 router.post("/review-booking", bookingController.reviewBooking);
 router.get("/get-review", bookingController.getReview);
+router.post("/momo", bookingController.createBookingWithMomo);
 
 module.exports = router;

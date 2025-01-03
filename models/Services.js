@@ -20,6 +20,11 @@ const serviceSchema = Schema({
     type: Number,
     required: true,
   },
+  isHidden: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
   serviceType: {
     type: String,
     enum: ["NAIL_CARE", "CLEAN", "HAIR", "MASSAGE", "COMBO"],

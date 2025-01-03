@@ -27,6 +27,11 @@ const voucherSchema = new Schema(
       type: Number,
       required: false,
     },
+    isHidden: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
     voucherType: {
       type: String,
       enum: ["ON_ORDER_SAVINGS", "FLAT_DISCOUNT", "SHIPPING_DISCOUNT"],

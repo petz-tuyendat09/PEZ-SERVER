@@ -2,10 +2,13 @@ const Booking = require("../models/Booking");
 const Service = require("../models/Services");
 const Review = require("../models/Review");
 const User = require("../models/User");
+const UserService = require("../services/userServices");
 const { sendBannedEmail } = require("../utils/sendBannedEmail");
 
 const moment = require("moment");
 const { sendBookingEmail } = require("../utils/sendBookingEmail");
+const { default: mongoose } = require("mongoose");
+const momoPaymentBooking = require("../momo/momoBooking");
 
 exports.queryBooking = async (
   bookingId,
@@ -135,7 +138,11 @@ exports.createBooking = async (
   selectedServices,
   totalPrice,
   bookingDate,
-  bookingHours
+  bookingHours,
+  discountAmount,
+  totalAfterDiscount,
+  voucherId,
+  paymentMethod
 ) => {
   try {
     const today = new Date();
@@ -146,8 +153,8 @@ exports.createBooking = async (
     const bookingsToday = await Booking.countDocuments({
       userId: userId,
       createdAt: {
-        $gte: startOfDay, // >= 2024-10-26T00:00:00.000Z
-        $lt: endOfDay, // < 2024-10-27T00:00:00.000Z
+        $gte: startOfDay,
+        $lt: endOfDay,
       },
     });
 
@@ -165,13 +172,6 @@ exports.createBooking = async (
       throw new Error("User not found");
     }
 
-    if (user.bannedUser === true) {
-      return {
-        success: false,
-        message: "Tài khoản của bạn đã bị khóa, không thể thực hiện.",
-      };
-    }
-
     // Extract service IDs from the selectedServices object
     const serviceIds = Object.keys(selectedServices).map((serviceType) => {
       return selectedServices[serviceType].serviceId;
@@ -187,10 +187,15 @@ exports.createBooking = async (
       bookingDate: new Date(bookingDate),
       bookingHours: bookingHours,
       totalPrice: totalPrice,
+      totalAfterDiscount: totalAfterDiscount,
+      voucherId: voucherId,
+      discountAmount: discountAmount,
+      paymentMethod: paymentMethod,
     });
 
     // Save the booking to the database
     await newBooking.save();
+    UserService.decreaseUserVoucher(userId, voucherId);
 
     // Increment the booking amount for each service
     for (const serviceId of serviceIds) {
@@ -213,6 +218,114 @@ exports.createBooking = async (
     });
 
     return {
+      success: true,
+      message: "Đặt lịch thành công.",
+    };
+  } catch (error) {
+    console.log("Error in bookingServices:", error);
+    return {
+      success: false,
+      message: "Có lỗi xảy ra. Vui lòng thử lại sau.",
+    };
+  }
+};
+
+exports.createBookingWithMomo = async (
+  userId,
+  customerName,
+  customerPhone,
+  customerEmail,
+  selectedServices,
+  totalPrice,
+  bookingDate,
+  bookingHours,
+  discountAmount,
+  totalAfterDiscount,
+  voucherId,
+  paymentMethod
+) => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.toISOString().split("T")[0]); // 00:00:00 UTC
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setUTCDate(startOfDay.getUTCDate() + 1); // 00:00:00 ngày mai UTC
+
+    const bookingsToday = await Booking.countDocuments({
+      userId: userId,
+      createdAt: {
+        $gte: startOfDay,
+        $lt: endOfDay,
+      },
+    });
+
+    const maxBookingsPerDay = 900;
+    if (bookingsToday >= maxBookingsPerDay) {
+      return {
+        success: false,
+        message: "Bạn đã đạt tối đa số lần đặt lịch trong ngày.",
+      };
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Extract service IDs from the selectedServices object
+    const serviceIds = Object.keys(selectedServices).map((serviceType) => {
+      return selectedServices[serviceType].serviceId;
+    });
+
+    // Create a new booking object
+    const newBooking = new Booking({
+      userId: userId,
+      customerName: customerName,
+      customerEmail: customerEmail,
+      customerPhone: customerPhone,
+      service: serviceIds,
+      bookingDate: new Date(bookingDate),
+      bookingHours: bookingHours,
+      totalPrice: totalPrice,
+      totalAfterDiscount: totalAfterDiscount,
+      voucherId: voucherId !== "" ? voucherId : null,
+      discountAmount: discountAmount,
+      paymentMethod: paymentMethod,
+    });
+
+    // Save the booking to the database
+    await newBooking.save();
+    if (voucherId !== "") {
+      UserService.decreaseUserVoucher(userId, voucherId);
+    }
+
+    // Increment the booking amount for each service
+    for (const serviceId of serviceIds) {
+      await Service.findByIdAndUpdate(serviceId, {
+        $inc: { bookingAmount: 1 },
+      });
+    }
+
+    // Tìm chi tiết dịch vụ đã đặt
+    const servicesDetails = await Service.find({
+      _id: { $in: serviceIds },
+    });
+
+    sendBookingEmail(customerEmail, {
+      customerName,
+      servicesDetails,
+      totalPrice,
+      bookingDate,
+      bookingHours,
+    });
+
+    const response = await momoPaymentBooking(
+      totalAfterDiscount,
+      newBooking._id
+    );
+
+    return {
+      payUrl: response.payUrl,
       success: true,
       message: "Đặt lịch thành công.",
     };

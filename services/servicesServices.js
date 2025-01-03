@@ -5,6 +5,8 @@ exports.queryServices = async ({ serviceType, bookingAmount, serviceId }) => {
     const query = {};
     let bookingOrder = 1;
 
+    query.isHidden = false;
+
     if (serviceType) {
       query.serviceType = new RegExp(serviceType, "i");
     }
@@ -38,6 +40,7 @@ exports.queryServicesPaginate = async ({
   serviceId,
   page = 1, // Default page is 1 if not provided
   limit = 10, // Default limit is 10 if not provided
+  isHidden,
 }) => {
   try {
     const query = {};
@@ -46,6 +49,10 @@ exports.queryServicesPaginate = async ({
     // Handle filtering by service type using a case-insensitive regular expression
     if (serviceType) {
       query.serviceType = new RegExp(serviceType, "i");
+    }
+
+    if (isHidden) {
+      query.isHidden = isHidden;
     }
 
     // Handle sorting by bookingAmount based on query parameters
@@ -154,5 +161,15 @@ exports.updateService = async (serviceId, updatedServiceData) => {
   } catch (error) {
     console.error("Error in updateService:", error);
     throw error;
+  }
+};
+
+exports.toggleService = async ({ serviceId, toggleOption }) => {
+  try {
+    await Services.findByIdAndUpdate(serviceId, { isHidden: toggleOption });
+    return { success: false, message: "Cập nhật thành công" };
+  } catch (error) {
+    console.log(error.message);
+    return { success: false, message: "Cập nhật thất bại" };
   }
 };
