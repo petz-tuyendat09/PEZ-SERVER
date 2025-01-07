@@ -167,7 +167,7 @@ exports.updateService = async (serviceId, updatedServiceData) => {
 exports.toggleService = async ({ serviceId, toggleOption }) => {
   try {
     await Services.findByIdAndUpdate(serviceId, { isHidden: toggleOption });
-    return { success: false, message: "Cập nhật thành công" };
+    return { success: true, message: "Cập nhật thành công" };
   } catch (error) {
     console.log(error.message);
     return { success: false, message: "Cập nhật thất bại" };
