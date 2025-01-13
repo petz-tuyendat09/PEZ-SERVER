@@ -188,14 +188,16 @@ exports.createBooking = async (
       bookingHours: bookingHours,
       totalPrice: totalPrice,
       totalAfterDiscount: totalAfterDiscount,
-      voucherId: voucherId,
+      voucherId: voucherId ? voucherId : null,
       discountAmount: discountAmount,
       paymentMethod: paymentMethod,
     });
 
     // Save the booking to the database
     await newBooking.save();
-    UserService.decreaseUserVoucher(userId, voucherId);
+    if (voucherId) {
+      await UserService.decreaseUserVoucher(userId, voucherId);
+    }
 
     // Increment the booking amount for each service
     for (const serviceId of serviceIds) {
@@ -296,7 +298,7 @@ exports.createBookingWithMomo = async (
     // Save the booking to the database
     await newBooking.save();
     if (voucherId !== "") {
-      UserService.decreaseUserVoucher(userId, voucherId);
+      await UserService.decreaseUserVoucher(userId, voucherId);
     }
 
     // Increment the booking amount for each service

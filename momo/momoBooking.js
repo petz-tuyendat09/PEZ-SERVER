@@ -17,9 +17,9 @@ async function momoPaymentBooking(amount, orderId) {
 
   const orderInfo = "Thanh toán đơn hàng";
   const redirectUrl =
-    process.env.DOMAIN_URL || "https://petz-zeta.vercel.app/test";
+    process.env.DOMAIN_URL || "http://localhost:3000/booking-success";
   const ipnUrl =
-    "https://075d-2405-4803-c84a-c440-8512-b9dc-eadb-4e94.ngrok-free.app/api/payment/callback-paymentBooking";
+    "https://32e4-2405-4803-d74e-7e00-8df8-7cef-8593-b8d7.ngrok-free.app/api/payment/callback-paymentBooking";
   const requestId = orderId;
   const requestType = "captureWallet";
   const extraData = "";
