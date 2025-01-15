@@ -5,6 +5,7 @@ const multer = require("multer");
 const upload = multer();
 const productController = require("../controller/product-controller");
 
+router.get("/export", productController.exportExcel);
 router.get("/", productController.queryProducts);
 router.get("/shop", productController.queryProductsWithPriceFilter);
 
