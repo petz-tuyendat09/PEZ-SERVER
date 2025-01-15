@@ -75,7 +75,7 @@ exports.queryProductsNguyet = async (req, res) => {
     } else if (filters.sortBy === "1") {
       query.productBuy = { $gte: 100 };
     }
-    'hihi'
+
     const limit = filters.limit;
     const skip = (filters.page - 1) * limit;
 
