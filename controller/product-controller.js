@@ -1,7 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const Product = require("../models/Product");
 const productService = require("../services/productServices");
-
+const { exportProductList } = require("../services/excelService");
 exports.getProductsWithPagination = async (req, res) => {
   try {
     const options = {
@@ -49,6 +49,25 @@ exports.queryProducts = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+exports.exportExcel = async (req, res) => {
+  try {
+      const products = await Product.find({});
+      if (!products || products?.data?.length === 0) {
+          return res.status(404).json({ message: "No products found." });
+      }
+
+      const buffer = await exportProductList(products);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=products-list.xlsx');
+      return res.status(200).send(buffer);
+  } catch (error) {
+      console.error("Error exporting file:", error);
+      return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+
 
 exports.queryProductsWithPriceFilter = async (req, res) => {
   try {
